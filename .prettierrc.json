@@ -1,0 +1,27 @@
+{
+  "tabWidth": 2,
+  "semi": false,
+  "singleQuote": false,
+  "arrowParens": "avoid",
+  "importOrder": [
+    "^react$",
+    "^react-*",
+    "^elysia$",
+    "^@elysiajs/*$",
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^@/",
+    "",
+    "^[.]",
+    "",
+    "^(?!.*[.]css$)[./].*$",
+    ".css$"
+  ],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+  "importOrderTypeScriptVersion": "5.0.0",
+  "plugins": [
+    "@ianvs/prettier-plugin-sort-imports",
+    "prettier-plugin-packagejson"
+  ]
+}
