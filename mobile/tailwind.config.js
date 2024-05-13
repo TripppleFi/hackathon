@@ -29,10 +29,12 @@ module.exports = {
         },
       },
       fontFamily: {
+        uiThin: "SansThin",
         uiLight: "SansLight",
         uiRegular: "SansRegular",
         uiMedium: "SansMedium",
         uiBold: "SansBold",
+        uiBlack: "SansBlack",
       },
     },
   },
