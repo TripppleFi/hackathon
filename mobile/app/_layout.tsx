@@ -28,14 +28,12 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SansLight: require("../assets/fonts/geist/Geist-Light.ttf"),
-    SansRegular: require("../assets/fonts/geist/Geist-Regular.ttf"),
-    SansMedium: require("../assets/fonts/geist/Geist-Medium.ttf"),
-    SansBold: require("../assets/fonts/geist/Geist-Bold.ttf"),
-    // SansLight: require("../assets/fonts/supply/PPSupplySans-Ultralight.ttf"),
-    // SansRegular: require("../assets/fonts/supply/PPSupplySans-Regular.ttf"),
-    // SansMedium: require("../assets/fonts/supply/PPSupplySans-Medium.ttf"),
-    // SansBold: require("../assets/fonts/supply/PPSupplySans-Bold.ttf"),
+    SansThin: require("../assets/fonts/air/PPAir-Thin.ttf"),
+    SansLight: require("../assets/fonts/air/PPAir-ExtraLight.ttf"),
+    SansRegular: require("../assets/fonts/air/PPAir-Regular.ttf"),
+    SansMedium: require("../assets/fonts/air/PPAir-Medium.ttf"),
+    SansBold: require("../assets/fonts/air/PPAir-SemiBold.ttf"),
+    SansBlack: require("../assets/fonts/air/PPAir-Black.ttf"),
   })
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
