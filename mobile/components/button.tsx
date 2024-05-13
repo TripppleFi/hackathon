@@ -2,35 +2,39 @@ import React from "react"
 import { Pressable } from "react-native"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { TextClassContext } from "@/components/text"
+import { TextClassProvider } from "@/components/text"
 import { type PressableRef } from "@/components/types"
 import { cn } from "@/lib/utils"
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary shadow",
-      },
-      size: {
-        default: "h-12 px-4",
-        sm: "h-8 px-3",
-        lg: "h-16 px-8",
-        icon: "h-12 w-12",
-      },
+const buttonVariants = cva("flex-row items-center justify-center rounded-md", {
+  variants: {
+    variant: {
+      default: "bg-primary shadow active:bg-primary/90",
+      outline: "border border-input bg-background shadow-sm active:bg-accent",
+      secondary:
+        "border border-input bg-secondary shadow-sm active:bg-secondary/80",
+      ghost: "active:bg-accent",
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
+    size: {
+      default: "h-12 px-4 gap-x-1",
+      sm: "h-8 px-3 gap-x-1",
+      lg: "h-16 px-8 gap-x-1",
+      icon: "h-12 w-12 gap-x-1",
     },
   },
-)
+  defaultVariants: {
+    variant: "default",
+    size: "default",
+  },
+})
 
-const buttonTextVariants = cva("", {
+const buttonTextVariants = cva("font-uiBold uppercase", {
   variants: {
     variant: {
       default: "text-primary-foreground",
+      outline: "text-foreground active:text-accent-foreground",
+      secondary: "text-secondary-foreground",
+      ghost: "text-foreground active:text-accent-foreground",
     },
     size: {
       default: "text-base",
@@ -49,9 +53,9 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
   VariantProps<typeof buttonVariants>
 
 const Button = React.forwardRef<PressableRef, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => {
+  ({ className, variant = "default", size, ...props }, ref) => {
     return (
-      <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
+      <TextClassProvider value={buttonTextVariants({ variant, size })}>
         <Pressable
           ref={ref}
           role="button"
@@ -61,7 +65,7 @@ const Button = React.forwardRef<PressableRef, ButtonProps>(
           )}
           {...props}
         />
-      </TextClassContext.Provider>
+      </TextClassProvider>
     )
   },
 )

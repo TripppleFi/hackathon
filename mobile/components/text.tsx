@@ -6,23 +6,29 @@ import { type SlottableTextProps, type TextRef } from "@/components/types"
 import { cn } from "@/lib/utils"
 
 const TextClassContext = React.createContext<string | undefined>(undefined)
+const TextClassProvider = TextClassContext.Provider
 
-const Text = React.forwardRef<TextRef, SlottableTextProps>(
-  ({ className, asChild = false, ...props }, ref) => {
-    const textClass = React.useContext(TextClassContext)
-    const Component = asChild ? SlotText : RNText
-    return (
-      <Component
-        className={cn(
-          "font-ui400 text-foreground text-base",
-          textClass,
-          className,
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
+const Text = createTextComponent("font-uiRegular text-base")
+const Heading = createTextComponent("font-uiBold text-3xl")
+const Subheading = createTextComponent("font-uiMedium text-lg uppercase")
+const Label = createTextComponent(
+  "font-uiBold text-xs uppercase text-muted-foreground",
 )
 
-export { Text, TextClassContext }
+function createTextComponent(classes: string) {
+  return React.forwardRef<TextRef, SlottableTextProps>(
+    ({ className, asChild = false, ...props }, ref) => {
+      const textClass = React.useContext(TextClassContext)
+      const Component = asChild ? SlotText : RNText
+      return (
+        <Component
+          className={cn("text-foreground", classes, textClass, className)}
+          ref={ref}
+          {...props}
+        />
+      )
+    },
+  )
+}
+
+export { Text, Heading, Label, Subheading, TextClassProvider }

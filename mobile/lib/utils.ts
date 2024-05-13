@@ -7,15 +7,27 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function idGenerator(label: string) {
+export function idFactory(label: string) {
   let i = 0
-  const e = Math.random().toString(16).slice(2)
-
   return {
-    next() {
-      return `${label}${e}${i++}`
+    next(inner?: string) {
+      return `${label}${inner}${i++}`
     },
   }
+}
+
+export const clamp = (n: number, min: number, max: number) =>
+  Math.min(Math.max(n, min), max)
+
+export function shortenAddress(address: string, offset = 6) {
+  return `${address.slice(0, 6)}...${address.slice(-1 * offset)}`
+}
+
+export function numberFormat(number: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(number)
 }
 
 export function server(url: string, params?: Record<string, string>) {

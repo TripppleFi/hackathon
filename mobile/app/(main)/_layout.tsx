@@ -1,16 +1,11 @@
 import React from "react"
-import FontAwesome from "@expo/vector-icons/FontAwesome"
+import { TouchableOpacity, View } from "react-native"
+import { type BottomTabBarProps } from "@react-navigation/bottom-tabs"
 import { Redirect, Tabs } from "expo-router"
 
-import { useLogin } from "@/lib/hooks/use-sui"
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"]
-  color: string
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />
-}
+import { Text } from "@/components/text"
+import { useLogin } from "@/hooks/use-sui"
+import { cn } from "@/lib/utils"
 
 export default function TabLayout() {
   const { account } = useLogin()
@@ -20,14 +15,83 @@ export default function TabLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Tab One",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
+    <Tabs
+      backBehavior="initialRoute"
+      initialRouteName="index"
+      screenOptions={{ headerShown: false }}
+      tabBar={state => <CustomTabBar {...state} />}
+    >
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="cards" options={{ title: "Cards" }} />
+      <Tabs.Screen name="savings" options={{ title: "Savings" }} />
+      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
+  )
+}
+
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  return (
+    <View className="px-4 pb-4 pt-2">
+      <View className="bg-background border-foreground/30 flex-row rounded-md border px-2 py-2">
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key]
+
+          const label =
+            options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+                ? options.title
+                : route.name
+
+          const isFocused = state.index === index
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            })
+
+            if (!isFocused && !event.defaultPrevented) {
+              // The `merge: true` option makes sure that the params inside the tab screen are preserved
+              // @ts-ignore
+              navigation.navigate({ name: route.name, merge: true })
+            }
+          }
+
+          const onLongPress = () => {
+            navigation.emit({
+              type: "tabLongPress",
+              target: route.key,
+            })
+          }
+
+          const tabClasses = cn(
+            "flex-1 py-1.5",
+            isFocused && "bg-foreground rounded-md",
+          )
+
+          const textClasses = cn(
+            "text-center",
+            isFocused && "font-uiBold text-background",
+          )
+
+          return (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              className={tabClasses}
+              testID={options.tabBarTestID}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              key={route.key}
+            >
+              <Text className={textClasses}>{label as string}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+    </View>
   )
 }

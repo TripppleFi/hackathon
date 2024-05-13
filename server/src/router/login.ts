@@ -4,6 +4,7 @@ import {
   generateNonce,
   generateRandomness,
   getExtendedEphemeralPublicKey,
+  getZkLoginSignature,
   jwtToAddress,
 } from "@mysten/zklogin"
 import { ip } from "address"
@@ -127,7 +128,7 @@ export const loginRoutes = new Elysia({ name: "@router/auth", prefix: "auth" })
         new Ed25519PublicKey(ephemeralPublicKey),
       )
 
-      const proofs = await safeFetch(config.SUI_PROVER_URL, {
+      const proofs = await safeFetch<PartialSignature>(config.SUI_PROVER_URL, {
         method: "POST",
         body: {
           maxEpoch,
@@ -154,3 +155,8 @@ export const loginRoutes = new Elysia({ name: "@router/auth", prefix: "auth" })
     },
     { body: proofValidator },
   )
+
+type PartialSignature = Omit<
+  Parameters<typeof getZkLoginSignature>["0"]["inputs"],
+  "addressSeed"
+>

@@ -10,7 +10,7 @@ import {
   useLogin,
   useToken,
   type AuthPayload,
-} from "@/lib/hooks/use-sui"
+} from "@/hooks/use-sui"
 import { server } from "@/lib/utils"
 
 export default function LoginScreen() {
@@ -68,7 +68,6 @@ function FinalizeLogin({ payload }: FinalizeProps) {
   return (
     <View className="flex-1 items-center justify-center">
       <Text>Generating zk proofs...</Text>
-      <Text>{JSON.stringify(payload, null, 2)}</Text>
     </View>
   )
 }

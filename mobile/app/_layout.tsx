@@ -1,7 +1,5 @@
 import { useEffect } from "react"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import FontAwesome from "@expo/vector-icons/FontAwesome"
 import {
   DefaultTheme,
   ThemeProvider,
@@ -12,6 +10,7 @@ import { useFonts } from "expo-font"
 import { Stack } from "expo-router"
 import * as SplashScreen from "expo-splash-screen"
 
+import { BottomSheetModalProvider } from "@/components/bottom-sheet"
 import { focusManagement, onlineManagement, qc } from "@/lib/query"
 
 export {
@@ -28,18 +27,15 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  const insets = useSafeAreaInsets()
   const [loaded, error] = useFonts({
-    Geist100: require("../assets/fonts/Geist-Thin.ttf"),
-    Geist200: require("../assets/fonts/Geist-UltraLight.ttf"),
-    Geist300: require("../assets/fonts/Geist-Light.ttf"),
-    Geist400: require("../assets/fonts/Geist-Regular.ttf"),
-    Geist500: require("../assets/fonts/Geist-Medium.ttf"),
-    Geist600: require("../assets/fonts/Geist-SemiBold.ttf"),
-    Geist700: require("../assets/fonts/Geist-Bold.ttf"),
-    Geist800: require("../assets/fonts/Geist-Black.ttf"),
-    Geist900: require("../assets/fonts/Geist-UltraBlack.ttf"),
-    ...FontAwesome.font,
+    SansLight: require("../assets/fonts/geist/Geist-Light.ttf"),
+    SansRegular: require("../assets/fonts/geist/Geist-Regular.ttf"),
+    SansMedium: require("../assets/fonts/geist/Geist-Medium.ttf"),
+    SansBold: require("../assets/fonts/geist/Geist-Bold.ttf"),
+    // SansLight: require("../assets/fonts/supply/PPSupplySans-Ultralight.ttf"),
+    // SansRegular: require("../assets/fonts/supply/PPSupplySans-Regular.ttf"),
+    // SansMedium: require("../assets/fonts/supply/PPSupplySans-Medium.ttf"),
+    // SansBold: require("../assets/fonts/supply/PPSupplySans-Bold.ttf"),
   })
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -63,12 +59,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={getThemeOverride()}>
-      <GestureHandlerRootView
-        className="flex-1"
-        style={{ paddingTop: insets.top }}
-      >
+      <GestureHandlerRootView className="bg-background flex-1">
         <QueryClientProvider client={qc}>
-          <Stack screenOptions={{ headerShown: false }} />
+          <BottomSheetModalProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </BottomSheetModalProvider>
         </QueryClientProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
