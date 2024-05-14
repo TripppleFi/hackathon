@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from "react"
+import { createContext, useContext, useRef } from "react"
 import { Dimensions, SectionList, View, ViewProps } from "react-native"
 import {
   default as Carousel,
@@ -22,6 +22,7 @@ import {
   Text,
   TextClassProvider,
 } from "@/components/text"
+import { Container } from "@/components/view"
 import { idFactory } from "@/lib/utils"
 
 const id = idFactory("Cards")
@@ -31,14 +32,14 @@ export default function CardsScreen() {
   const insets = useSafeAreaInsets()
   return (
     <CardsContext.Provider value={cardsContextProps()}>
-      <View className="flex-1" style={{ paddingTop: insets.top }}>
-        <View className="flex-row items-center justify-between px-8 pt-4">
+      <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
+        <Container className="flex-row items-center justify-between pt-4">
           <Heading>My Cards</Heading>
           <Button variant="outline" size="sm">
             <Icon name="Plus" variant="outline" />
             <Text>New Card</Text>
           </Button>
-        </View>
+        </Container>
         <CardList />
         <CardButtons />
         <CardTransactions />
@@ -81,7 +82,7 @@ function CardButtons() {
   }
 
   return (
-    <View className="px-8">
+    <Container>
       <Label className="mb-1">Card Actions</Label>
       <View className="flex-row justify-between gap-4">
         <Button variant="default" className="flex-1">
@@ -96,11 +97,11 @@ function CardButtons() {
           <Icon name="Eye" variant="secondary" size={24} />
         </Button>
       </View>
-    </View>
+    </Container>
   )
 }
 
-export function CardTransactions() {
+function CardTransactions() {
   const DATA = [
     {
       title: "Main dishes",
@@ -121,7 +122,7 @@ export function CardTransactions() {
   ]
 
   return (
-    <View className="bg-background border-primary/50 mt-8 flex-1 border-t px-8">
+    <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
       <Subheading className="pt-4">Transactions</Subheading>
       <SectionList
         sections={DATA}
@@ -143,7 +144,7 @@ export function CardTransactions() {
           </View>
         )}
       />
-    </View>
+    </Container>
   )
 }
 

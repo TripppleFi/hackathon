@@ -28,6 +28,20 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
+    // SansThin: require("../assets/fonts/clash/ClashGrotesk-Extralight.otf"),
+    // SansLight: require("../assets/fonts/clash/ClashGrotesk-Light.otf"),
+    // SansRegular: require("../assets/fonts/clash/ClashGrotesk-Regular.otf"),
+    // SansMedium: require("../assets/fonts/clash/ClashGrotesk-Medium.otf"),
+    // SansBold: require("../assets/fonts/clash/ClashGrotesk-Semibold.otf"),
+    // SansBlack: require("../assets/fonts/clash/ClashGrotesk-Bold.otf"),
+
+    // SansThin: require("../assets/fonts/air/PPAir-Thin.ttf"),
+    // SansLight: require("../assets/fonts/air/PPAir-ExtraLight.ttf"),
+    // SansRegular: require("../assets/fonts/trip/TripSans-Regular.ttf"),
+    // SansMedium: require("../assets/fonts/trip/TripSans-Medium.ttf"),
+    // SansBold: require("../assets/fonts/trip/TripSans-Bold.ttf"),
+    // SansBlack: require("../assets/fonts/trip/TripSans-Ultra.ttf"),
+
     SansThin: require("../assets/fonts/air/PPAir-Thin.ttf"),
     SansLight: require("../assets/fonts/air/PPAir-ExtraLight.ttf"),
     SansRegular: require("../assets/fonts/air/PPAir-Regular.ttf"),
