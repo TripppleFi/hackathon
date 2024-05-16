@@ -1,6 +1,6 @@
-import { createContext, useContext, useRef } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Dimensions, SectionList, View, ViewProps } from "react-native"
+import { Dimensions, View, ViewProps } from "react-native"
 import {
   default as Carousel,
   type ICarouselInstance,
@@ -27,22 +27,23 @@ import {
   Text,
   TextClassProvider,
 } from "@/components/text"
+import { Transaction } from "@/components/transactions"
 import { Container } from "@/components/view"
-import { useApi } from "@/hooks/use-api"
-import { TransactionBlock } from "@/hooks/use-sui"
+import { useApi, type ApiType } from "@/hooks/use-api"
+import { TransactionBlock, useSui, useSuiClientQuery } from "@/hooks/use-sui"
 import { qc } from "@/lib/query"
-import { idFactory } from "@/lib/utils"
 
-const id = idFactory("Cards")
-const CardsContext = createContext<ReturnType<typeof cardsContextProps>>(null!)
+const CardsContext = createContext<ReturnType<typeof createCardContextProps>>(
+  null!,
+)
 
 export default function CardsScreen() {
   const insets = useSafeAreaInsets()
-  const { isPending, data, isError } = useCards()
+  const { isPending, data = [], isError } = useCards()
   const showCreateNew = !isError && !isPending && data.length === 0
 
   return (
-    <CardsContext.Provider value={cardsContextProps()}>
+    <CardsContext.Provider value={createCardContextProps(data)}>
       <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
         {!showCreateNew && (
           <Container className="flex-row items-center justify-between pt-4">
@@ -57,7 +58,7 @@ export default function CardsScreen() {
           </View>
         ) : (
           <>
-            <CardList />
+            <CardList cards={data} />
             <CardButtons />
             <CardTransactions />
             <CardDetails />
@@ -68,107 +69,76 @@ export default function CardsScreen() {
   )
 }
 
-function CardList() {
-  const data = [...new Array(3).keys()]
+interface CardListProps {
+  cards: NonNullable<
+    Awaited<ReturnType<ApiType["cards"]["index"]["get"]>>["data"]
+  >
+}
+
+function CardList({ cards }: CardListProps) {
   const width = Dimensions.get("window").width
   const height = width / (3.37 / 2.125)
   const parallaxScrollingScale = 0.85
   const listRef = useRef<ICarouselInstance>(null!)
+  const { setActiveCard } = useCardsContext()
 
   return (
     <View style={{ height }}>
       <Carousel
-        data={data}
+        data={cards}
         loop={false}
         ref={listRef}
         width={width}
         height={height}
         mode="parallax"
+        onSnapToItem={index => setActiveCard(cards[index])}
+        renderItem={({ item }) => <Card card={item} />}
         modeConfig={{
           parallaxScrollingScale,
           parallaxAdjacentItemScale: Math.pow(parallaxScrollingScale, 3),
         }}
-        renderItem={() => <Card />}
       />
     </View>
   )
 }
 
 function CardButtons() {
-  const { detailsModalRef } = useCardsContext()
+  const { activeCard, detailsModalRef } = useCardsContext()
   const handleShowCardDetails = () => {
     detailsModalRef.current.present()
   }
+
+  if (!activeCard) return null
 
   return (
     <Container>
       <Label className="mb-1">Card Actions</Label>
       <View className="flex-row justify-between gap-4">
-        <Button variant="default" className="flex-1">
-          <Icon name="ArrowDownLeft" variant="default" />
-          <Text>Fund Card</Text>
-        </Button>
-        <Button variant="outline" className="flex-1">
-          <Icon name="ArrowUpRight" variant="outline" />
-          <Text>Withdraw</Text>
-        </Button>
-        <Button variant="secondary" size="icon" onPress={handleShowCardDetails}>
-          <Icon name="Eye" variant="secondary" size={24} />
-        </Button>
+        <FundButton className="flex-1" />
+        <WithdrawButton className="flex-1" />
+        {activeCard.status === "ready" && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onPress={handleShowCardDetails}
+          >
+            <Icon name="Eye" variant="secondary" size={24} />
+          </Button>
+        )}
       </View>
     </Container>
   )
 }
 
 function CardTransactions() {
-  const DATA = [
-    {
-      title: "Main dishes",
-      data: ["Pizza", "Burger", "Risotto"],
-    },
-    {
-      title: "Sides",
-      data: ["French Fries", "Onion Rings", "Fried Shrimps"],
-    },
-    {
-      title: "Drinks",
-      data: ["Water", "Coke", "Beer"],
-    },
-    {
-      title: "Desserts",
-      data: ["Cheese Cake", "Ice Cream"],
-    },
-  ]
+  const { activeCard } = useCardsContext()
 
-  return (
-    <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
-      <Subheading className="pt-4">Transactions</Subheading>
-      <SectionList
-        sections={DATA}
-        keyExtractor={() => id.next("txSection")}
-        showsVerticalScrollIndicator={false}
-        renderSectionHeader={({ section }) => <Label>{section.title}</Label>}
-        renderItem={() => (
-          <View className="flex-row items-center gap-x-4 py-1">
-            <View className="bg-secondary rounded-full p-2">
-              <Icon name="ArrowDownLeft" variant="outline" size={24} />
-            </View>
-            <View className="flex-1">
-              <Text>lorem ipsum</Text>
-              <Text className="text-muted-foreground text-xs">04:03 PM</Text>
-            </View>
-            <View>
-              <Currency amount={-20} />
-            </View>
-          </View>
-        )}
-      />
-    </Container>
-  )
+  return <Transaction label="Transactions" address={activeCard?.address} />
 }
 
 function CardDetails() {
-  const { detailsModalRef } = useCardsContext()
+  const { activeCard, detailsModalRef } = useCardsContext()
+  if (!activeCard) return null
   return (
     <BottomSheetModal ref={detailsModalRef} snapPoints={["25%", "65%"]}>
       <BottomSheetView className="px-8 py-4">
@@ -177,63 +147,94 @@ function CardDetails() {
           <Button
             size="sm"
             variant="outline"
-            onPress={() => detailsModalRef.current.close()}
+            onPress={() => detailsModalRef.current.forceClose()}
           >
             <Icon name="Eye" variant="outline" />
             <Text>Hide</Text>
           </Button>
         </View>
         <View className="h-56 pb-4">
-          <Card />
+          <Card card={activeCard} />
         </View>
-        <View>
-          <CardLine label="Card name" value="Otumokpor One" />
-          <CardLine label="Card number" value="4253 8293 7310 9530" />
-          <CardLine label="Expiry date" value="05/28" />
-          <CardLine label="CVV (Security code)" value="419" />
-        </View>
+        {activeCard.status === "ready" && (
+          <View>
+            <CardLine label="Card name" value={activeCard.nameOnCard} />
+            <CardLine label="Card number" value={activeCard.accountNumber} />
+            <CardLine label="Expiry date" value={activeCard.expiry} />
+            <CardLine
+              label="CVV (Security code)"
+              value={activeCard.securityCode}
+            />
+          </View>
+        )}
       </BottomSheetView>
     </BottomSheetModal>
   )
 }
 
-function Card() {
+interface CardProps {
+  card: CardListProps["cards"][number]
+}
+
+function Card({ card }: CardProps) {
+  const balance = useSuiClientQuery("getBalance", { owner: card.address })
   return (
     <TextClassProvider value="text-white">
       <View className="flex-1">
         <View className="bg-foreground flex-1 justify-between rounded-xl p-8">
-          <View className="flex-row items-center gap-x-4">
-            <BrandIcon className="text-white" name="visa" size={36} />
-            <Text className="font-uiBold">Gaming</Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-x-4">
+              <BrandIcon className="text-white" name="visa" size={36} />
+              <Text className="font-uiBold">{card.label}</Text>
+            </View>
+            {card.status !== "ready" && (
+              <View>
+                <View className="border-background rounded-sm border px-1">
+                  <Label>{card.status}</Label>
+                </View>
+              </View>
+            )}
           </View>
           <View>
             <Label>Total Balance</Label>
             <Currency
               className="text-background font-uiMedium text-3xl"
-              amount={1e12 / 1e9}
+              amount={Number(balance.data?.totalBalance ?? 0) / 1e9}
             />
           </View>
           <View className="flex-row justify-between">
-            <View>
-              <Label>PAN</Label>
-              <Text>**** 9233</Text>
-            </View>
-            <View className="items-end">
-              <Label>Valid Thru</Label>
-              <Text>05/28</Text>
-            </View>
+            {card.status === "ready" && (
+              <View>
+                <Label>PAN</Label>
+                <Text>**** 9233</Text>
+              </View>
+            )}
+            {card.status === "ready" && (
+              <View className="items-end">
+                <Label>Valid Thru</Label>
+                <Text>05/28</Text>
+              </View>
+            )}
           </View>
+          {card.status === "initiated" && (
+            <Text className="text-red-300">
+              Please fund your card to get started
+            </Text>
+          )}
         </View>
       </View>
     </TextClassProvider>
   )
 }
 
-type CardLineProps = ViewProps & { label: string; value: string }
+type CardLineProps = ViewProps & {
+  label: string
+  value: string | number | null
+}
 
 function CardLine(props: CardLineProps) {
   const copyToClipboard = async () => {
-    await Clipboard.setStringAsync(props.value)
+    await Clipboard.setStringAsync(String(props.value))
   }
 
   return (
@@ -268,6 +269,7 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
     try {
       await mutation.mutateAsync(args)
       await qc.invalidateQueries()
+      modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
     }
@@ -292,7 +294,7 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
             <Button
               size="sm"
               variant="outline"
-              onPress={() => modalRef.current.close()}
+              onPress={() => modalRef.current.forceClose()}
             >
               <Icon name="Eye" variant="outline" />
               <Text>Hide</Text>
@@ -325,8 +327,8 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
             disabled={!form.formState.isValid}
             onPress={form.handleSubmit(handleSubmit)}
           >
-            <Icon name="ArrowUpRight" />
-            <Text>Send</Text>
+            <Icon name="Plus" />
+            <Text>Create Card</Text>
           </Button>
         </BottomSheetView>
       </BottomSheetModal>
@@ -334,8 +336,201 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
   )
 }
 
-function cardsContextProps() {
-  return { detailsModalRef: useRef<BottomSheetModalMethods>(null!) }
+const fundCardValidator = z.object({
+  amount: z.coerce.number(),
+})
+
+function FundButton(props: ButtonProps) {
+  const { api } = useApi()
+  const { activeCard } = useCardsContext()
+  const { executeTransactionBlock } = useSui()
+  const modalRef = useRef<BottomSheetModalMethods>(null!)
+  const form = useForm<z.infer<typeof fundCardValidator>>({
+    resolver: zodResolver(fundCardValidator),
+    defaultValues: { amount: 10 },
+  })
+
+  const mutation = useMutation({
+    async mutationFn(args: z.infer<typeof fundCardValidator>) {
+      const txb = new TransactionBlock()
+      const [coin] = txb.splitCoins(txb.gas, [txb.pure(args.amount * 1e9)])
+      txb.transferObjects([coin], txb.pure(activeCard?.address))
+
+      const result = await executeTransactionBlock({ transactionBlock: txb })
+      return api.cards.fund.post({ digest: result.digest })
+    },
+  })
+
+  const handleSubmit = async (args: z.infer<typeof fundCardValidator>) => {
+    try {
+      await mutation.mutateAsync(args)
+      await qc.invalidateQueries()
+      modalRef.current.forceClose()
+    } catch (error) {
+      console.log("error:", error)
+    }
+  }
+
+  return (
+    <>
+      <Button {...props} onPress={() => modalRef.current.present()}>
+        <Icon name="ArrowDownLeft" variant="default" />
+        <Text>Fund Card</Text>
+      </Button>
+
+      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+        <BottomSheetView className="flex-1 px-8 py-4">
+          <View className="flex-row items-center justify-between pb-4">
+            <Subheading>Fund Card</Subheading>
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => modalRef.current.forceClose()}
+            >
+              <Icon name="Eye" variant="outline" />
+              <Text>Hide</Text>
+            </Button>
+          </View>
+          <View className="flex-1 space-y-4">
+            <View>
+              <Controller
+                name="amount"
+                control={form.control}
+                render={({ field: { onChange, onBlur, value }, formState }) => (
+                  <View>
+                    <Label className="mb-1">Amount</Label>
+                    <Input
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      defaultValue={String(value)}
+                    />
+                    {formState.errors.amount && (
+                      <Text className="text-red-500">
+                        {formState.errors.amount.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+          <Button
+            disabled={!form.formState.isValid}
+            onPress={form.handleSubmit(handleSubmit)}
+          >
+            <Icon name="ArrowDownLeft" />
+            <Text>Add Funds to Card</Text>
+          </Button>
+        </BottomSheetView>
+      </BottomSheetModal>
+    </>
+  )
+}
+
+const withdrawCardValidator = z.object({
+  amount: z.coerce.number(),
+})
+
+function WithdrawButton(props: ButtonProps) {
+  const { api } = useApi()
+  const { activeCard } = useCardsContext()
+  const { executeTransactionBlock } = useSui()
+  const modalRef = useRef<BottomSheetModalMethods>(null!)
+  const form = useForm<z.infer<typeof withdrawCardValidator>>({
+    resolver: zodResolver(withdrawCardValidator),
+    defaultValues: { amount: 10 },
+  })
+
+  const mutation = useMutation({
+    async mutationFn(args: z.infer<typeof withdrawCardValidator>) {
+      return api.cards.withdraw.post({ ...args, id: String(activeCard?.id) })
+    },
+  })
+
+  const handleSubmit = async (args: z.infer<typeof withdrawCardValidator>) => {
+    try {
+      await mutation.mutateAsync(args)
+      await qc.invalidateQueries()
+      modalRef.current.forceClose()
+    } catch (error) {
+      console.log("error:", error)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        {...props}
+        variant="outline"
+        disabled={activeCard?.status === "initiated"}
+        onPress={() => modalRef.current.present()}
+      >
+        <Icon name="ArrowUpRight" variant="outline" />
+        <Text>Withdraw</Text>
+      </Button>
+
+      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+        <BottomSheetView className="flex-1 px-8 py-4">
+          <View className="flex-row items-center justify-between pb-4">
+            <Subheading>Withdraw funds</Subheading>
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => modalRef.current.forceClose()}
+            >
+              <Icon name="Eye" variant="outline" />
+              <Text>Hide</Text>
+            </Button>
+          </View>
+          <View className="flex-1 space-y-4">
+            <View>
+              <Controller
+                name="amount"
+                control={form.control}
+                render={({ field: { onChange, onBlur, value }, formState }) => (
+                  <View>
+                    <Label className="mb-1">Amount</Label>
+                    <Input
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      defaultValue={String(value)}
+                    />
+                    {formState.errors.amount && (
+                      <Text className="text-red-500">
+                        {formState.errors.amount.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+          <Button
+            disabled={!form.formState.isValid}
+            onPress={form.handleSubmit(handleSubmit)}
+          >
+            <Icon name="ArrowUpRight" />
+            <Text>Withdraw to wallet</Text>
+          </Button>
+        </BottomSheetView>
+      </BottomSheetModal>
+    </>
+  )
+}
+
+function createCardContextProps(cards: CardListProps["cards"]) {
+  const [activeCard, setActiveCard] = useState<
+    CardListProps["cards"][number] | null
+  >(cards[0])
+  const detailsModalRef = useRef<BottomSheetModalMethods>(null!)
+
+  useEffect(() => {
+    if (cards.length > 0) {
+      setActiveCard(cards[0])
+    }
+  }, [cards])
+
+  return { activeCard, setActiveCard, detailsModalRef }
 }
 
 function useCardsContext() {

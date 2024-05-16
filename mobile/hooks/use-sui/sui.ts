@@ -24,14 +24,14 @@ function useSuiNetwork() {
 
 function useSuiClient() {
   const { network } = useSuiNetwork()
-  return useMemo(
-    () =>
-      new SuiClient({
-        url: `https://sui-${network}-endpoint.blockvision.org/`,
-      }),
-    [],
-  )
-  // return useMemo(() => new SuiClient({ url: getFullnodeUrl(network) }), [])
+  // return useMemo(
+  //   () =>
+  //     new SuiClient({
+  //       url: `https://sui-${network}-endpoint.blockvision.org/`,
+  //     }),
+  //   [],
+  // )
+  return useMemo(() => new SuiClient({ url: getFullnodeUrl(network) }), [])
 }
 
 function useKeypair() {

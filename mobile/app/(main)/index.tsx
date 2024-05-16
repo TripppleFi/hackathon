@@ -1,12 +1,10 @@
-import { useMemo, useRef } from "react"
+import { useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Dimensions, SectionList, View, ViewProps } from "react-native"
+import { Dimensions, View, ViewProps } from "react-native"
 import QRCode from "react-native-qrcode-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { type SuiTransactionBlockResponse } from "@mysten/sui.js/client"
 import * as Clipboard from "expo-clipboard"
-import * as r from "radash"
 import { z } from "zod"
 
 import {
@@ -19,23 +17,13 @@ import { Currency } from "@/components/currency"
 import { Icon } from "@/components/icon"
 import { Input } from "@/components/input"
 import { Label, Subheading, Text } from "@/components/text"
+import { Transaction } from "@/components/transactions"
 import { Container } from "@/components/view"
-import {
-  TransactionBlock,
-  useSui,
-  useSuiClientQueries,
-  useSuiClientQuery,
-} from "@/hooks/use-sui"
-import { chunk } from "@/lib/array"
-import { date } from "@/lib/date"
-import { activityParser } from "@/lib/parsers"
+import { TransactionBlock, useSui, useSuiClientQuery } from "@/hooks/use-sui"
 import { qc } from "@/lib/query"
-import { cn, shortenAddress } from "@/lib/utils"
-
-import CardsScreen from "./cards"
+import { shortenAddress } from "@/lib/utils"
 
 export default function IndexScreen() {
-  return <CardsScreen />
   const { account } = useSui()
   const insets = useSafeAreaInsets()
   const balance = useSuiClientQuery("getBalance", { owner: account.address })
@@ -56,112 +44,8 @@ export default function IndexScreen() {
           <SendButton />
         </View>
       </Container>
-      <Activity />
+      <Transaction label="Activity" address={account.address} />
     </View>
-  )
-}
-
-function Activity() {
-  const { account } = useSui()
-  const { data } = useSuiClientQueries({
-    queries: [
-      {
-        method: "queryTransactionBlocks",
-        params: { filter: { FromAddress: account.address } },
-      },
-      {
-        method: "queryTransactionBlocks",
-        params: { filter: { ToAddress: account.address } },
-      },
-    ],
-    combine: res => ({
-      data: r.unique(
-        res.flatMap(res => res.data?.data ?? []),
-        i => i.digest,
-      ),
-      isSuccess: res.every(res => res.isSuccess),
-      isPending: res.some(res => res.isPending),
-      isError: res.some(res => res.isError),
-    }),
-  })
-
-  const validateResponse = (response: SuiTransactionBlockResponse) => {
-    const result = activityParser.safeParse(response)
-    if (result.error) return null
-
-    const meIndex = result.data.balanceChanges.findIndex(
-      change => change.owner.AddressOwner === account.address,
-    )
-
-    if (meIndex === -1) return null
-
-    const change = result.data.balanceChanges[meIndex]
-    const sender = change.amount < 0
-
-    return {
-      sender,
-      digest: result.data.digest,
-      action: sender ? "send" : "receive",
-      amount: result.data.balanceChanges[meIndex === 0 ? 0 : 1].amount,
-      account:
-        result.data.balanceChanges[meIndex === 0 ? 1 : 0].owner.AddressOwner,
-      createdAt: date(Number(result.data.timestampMs)).fromNow(),
-    }
-  }
-
-  const activity = useMemo(() => {
-    return r
-      .chain(
-        (piped: SuiTransactionBlockResponse[]) =>
-          r.sort(piped, sub => Number(sub.timestampMs), true),
-        piped =>
-          chunk(piped, sub =>
-            date(Number(sub.timestampMs)).startOf("date").format("MMM D, YYYY"),
-          ),
-        piped =>
-          r.listify(piped, (key, data) => ({
-            key,
-            data: data?.map(validateResponse),
-          })),
-      )(data)
-      .filter(({ data }) => data.filter(Boolean).length > 0)
-  }, [data])
-
-  return (
-    <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
-      <Subheading className="pt-4">Activity</Subheading>
-      <SectionList
-        sections={activity}
-        keyExtractor={item => item!.digest}
-        renderSectionHeader={({ section }) => <Label>{section.key}</Label>}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View className="flex-row gap-x-4 py-1">
-            <View className="bg-secondary rounded-full p-2">
-              <Icon
-                name={
-                  item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
-                }
-                variant="outline"
-                size={24}
-              />
-            </View>
-            <View className="flex-1">
-              <Text>{shortenAddress(item?.account ?? "")}</Text>
-              <Text className="text-muted-foreground text-xs">
-                {item?.createdAt}
-              </Text>
-            </View>
-            <View>
-              <Currency
-                className={cn("font-uiBold text-lg")}
-                amount={(item?.amount ?? 0) / 1e9}
-              />
-            </View>
-          </View>
-        )}
-      />
-    </Container>
   )
 }
 
@@ -190,7 +74,7 @@ function DepositButton(props: ViewProps) {
             <Button
               size="sm"
               variant="outline"
-              onPress={() => modalRef.current.close()}
+              onPress={() => modalRef.current.forceClose()}
             >
               <Icon name="Eye" variant="outline" />
               <Text>Hide</Text>
@@ -259,7 +143,7 @@ function SendButton(props: ViewProps) {
             <Button
               size="sm"
               variant="outline"
-              onPress={() => modalRef.current.close()}
+              onPress={() => modalRef.current.forceClose()}
             >
               <Icon name="Eye" variant="outline" />
               <Text>Hide</Text>

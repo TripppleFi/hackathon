@@ -9,18 +9,11 @@ import {
 import { generateId } from "../lib/utils"
 
 const id = text("id").notNull().primaryKey().$default(generateId)
+const createdAt = text("created_at")
+  .notNull()
+  .default(sql`(CURRENT_TIMESTAMP)`)
 const createTable: SQLiteTableFn = (name, columns, extraConfig) =>
-  sqliteTable(
-    name,
-    {
-      id,
-      ...columns,
-      createdAt: text("created_at")
-        .notNull()
-        .default(sql`(CURRENT_TIMESTAMP)`),
-    },
-    extraConfig,
-  )
+  sqliteTable(name, { id, ...columns, createdAt }, extraConfig)
 
 export const users = createTable(
   "users",
@@ -36,6 +29,7 @@ export const users = createTable(
 
 export const cards = createTable("cards", {
   id,
+  createdAt,
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
@@ -46,7 +40,7 @@ export const cards = createTable("cards", {
   accountNumber: text("account_number"),
   expiry: text("expiry"),
   securityCode: text("security_code"),
-  status: text("status", { enum: ["initiated", "created"] }).default(
-    "initiated",
-  ),
+  status: text("status", { enum: ["initiated", "pending", "ready"] })
+    .notNull()
+    .default("initiated"),
 })
