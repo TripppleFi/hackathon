@@ -1,12 +1,6 @@
 import { useMemo, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
-import {
-  Dimensions,
-  ScrollView,
-  SectionList,
-  View,
-  ViewProps,
-} from "react-native"
+import { Dimensions, SectionList, View, ViewProps } from "react-native"
 import QRCode from "react-native-qrcode-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -38,7 +32,10 @@ import { activityParser } from "@/lib/parsers"
 import { qc } from "@/lib/query"
 import { cn, shortenAddress } from "@/lib/utils"
 
+import CardsScreen from "./cards"
+
 export default function IndexScreen() {
+  return <CardsScreen />
   const { account } = useSui()
   const insets = useSafeAreaInsets()
   const balance = useSuiClientQuery("getBalance", { owner: account.address })
@@ -133,9 +130,6 @@ function Activity() {
   return (
     <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
       <Subheading className="pt-4">Activity</Subheading>
-      {/* <ScrollView>
-        <Text>{JSON.stringify(activity, null, 2)}</Text>
-      </ScrollView> */}
       <SectionList
         sections={activity}
         keyExtractor={item => item!.digest}
@@ -245,7 +239,7 @@ function SendButton(props: ViewProps) {
       txb.transferObjects([coin], txb.pure(args.address))
 
       await executeTransactionBlock({ transactionBlock: txb })
-      qc.invalidateQueries()
+      await qc.invalidateQueries()
       modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
@@ -283,7 +277,7 @@ function SendButton(props: ViewProps) {
                       keyboardType="numeric"
                       onBlur={onBlur}
                       onChangeText={onChange}
-                      value={value.toString()}
+                      defaultValue={value.toString()}
                     />
                     {formState.errors.amount && (
                       <Text className="text-red-500">
@@ -303,10 +297,9 @@ function SendButton(props: ViewProps) {
                     <Label className="mb-1">Recipient</Label>
                     <Input
                       numberOfLines={3}
-                      keyboardType="numeric"
                       onBlur={onBlur}
                       onChangeText={onChange}
-                      value={value}
+                      defaultValue={value}
                       multiline
                     />
                     {formState.errors.address && (

@@ -1,20 +1,25 @@
 import { createContext, useContext, useRef } from "react"
+import { Controller, useForm } from "react-hook-form"
 import { Dimensions, SectionList, View, ViewProps } from "react-native"
 import {
   default as Carousel,
   type ICarouselInstance,
 } from "react-native-reanimated-carousel"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import * as Clipboard from "expo-clipboard"
+import { z } from "zod"
 
 import {
   BottomSheetModal,
   BottomSheetView,
   type BottomSheetModalMethods,
 } from "@/components/bottom-sheet"
-import { Button } from "@/components/button"
+import { Button, ButtonProps } from "@/components/button"
 import { Currency } from "@/components/currency"
 import { BrandIcon, Icon } from "@/components/icon"
+import { Input } from "@/components/input"
 import {
   Heading,
   Label,
@@ -23,6 +28,9 @@ import {
   TextClassProvider,
 } from "@/components/text"
 import { Container } from "@/components/view"
+import { useApi } from "@/hooks/use-api"
+import { TransactionBlock } from "@/hooks/use-sui"
+import { qc } from "@/lib/query"
 import { idFactory } from "@/lib/utils"
 
 const id = idFactory("Cards")
@@ -30,20 +38,31 @@ const CardsContext = createContext<ReturnType<typeof cardsContextProps>>(null!)
 
 export default function CardsScreen() {
   const insets = useSafeAreaInsets()
+  const { isPending, data, isError } = useCards()
+  const showCreateNew = !isError && !isPending && data.length === 0
+
   return (
     <CardsContext.Provider value={cardsContextProps()}>
       <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
-        <Container className="flex-row items-center justify-between pt-4">
-          <Heading>My Cards</Heading>
-          <Button variant="outline" size="sm">
-            <Icon name="Plus" variant="outline" />
-            <Text>New Card</Text>
-          </Button>
-        </Container>
-        <CardList />
-        <CardButtons />
-        <CardTransactions />
-        <CardDetails />
+        {!showCreateNew && (
+          <Container className="flex-row items-center justify-between pt-4">
+            <Heading>My Cards</Heading>
+            <NewCardButton />
+          </Container>
+        )}
+        {showCreateNew ? (
+          <View className="flex-1 items-center justify-center space-y-4">
+            <Heading>Create your first card</Heading>
+            <NewCardButton size="default" />
+          </View>
+        ) : (
+          <>
+            <CardList />
+            <CardButtons />
+            <CardTransactions />
+            <CardDetails />
+          </>
+        )}
       </View>
     </CardsContext.Provider>
   )
@@ -227,10 +246,110 @@ function CardLine(props: CardLineProps) {
   )
 }
 
+const newCardValidator = z.object({
+  label: z.string().min(3),
+})
+
+function NewCardButton({ size = "sm", ...props }: ButtonProps) {
+  const { api } = useApi()
+  const modalRef = useRef<BottomSheetModalMethods>(null!)
+  const form = useForm<z.infer<typeof newCardValidator>>({
+    resolver: zodResolver(newCardValidator),
+    defaultValues: { label: "Gaming" },
+  })
+
+  const mutation = useMutation({
+    mutationFn(args: z.infer<typeof newCardValidator>) {
+      return api.cards.index.post(args)
+    },
+  })
+
+  const handleSubmit = async (args: z.infer<typeof newCardValidator>) => {
+    try {
+      await mutation.mutateAsync(args)
+      await qc.invalidateQueries()
+    } catch (error) {
+      console.log("error:", error)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size={size}
+        {...props}
+        onPress={() => modalRef.current.present()}
+      >
+        <Icon name="Plus" variant="outline" />
+        <Text>New Card</Text>
+      </Button>
+
+      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+        <BottomSheetView className="flex-1 px-8 py-4">
+          <View className="flex-row items-center justify-between pb-4">
+            <Subheading>Create New Card</Subheading>
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => modalRef.current.close()}
+            >
+              <Icon name="Eye" variant="outline" />
+              <Text>Hide</Text>
+            </Button>
+          </View>
+          <View className="flex-1 space-y-4">
+            <View>
+              <Controller
+                name="label"
+                control={form.control}
+                render={({ field: { onChange, onBlur, value }, formState }) => (
+                  <View>
+                    <Label className="mb-1">Label</Label>
+                    <Input
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      defaultValue={value}
+                    />
+                    {formState.errors.label && (
+                      <Text className="text-red-500">
+                        {formState.errors.label.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+          <Button
+            disabled={!form.formState.isValid}
+            onPress={form.handleSubmit(handleSubmit)}
+          >
+            <Icon name="ArrowUpRight" />
+            <Text>Send</Text>
+          </Button>
+        </BottomSheetView>
+      </BottomSheetModal>
+    </>
+  )
+}
+
 function cardsContextProps() {
   return { detailsModalRef: useRef<BottomSheetModalMethods>(null!) }
 }
 
 function useCardsContext() {
   return useContext(CardsContext)
+}
+
+function useCards() {
+  const { api } = useApi()
+  return useQuery({
+    queryKey: ["useCards"],
+    async queryFn() {
+      const response = await api.cards.index.get()
+      if (response.error) throw response.error
+      return response.data
+    },
+  })
 }

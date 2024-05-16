@@ -7,6 +7,7 @@ import { requestID } from "elysia-requestid"
 
 import { config } from "./lib/config"
 import { generateId as uuid } from "./lib/utils"
+import { cardRoutes } from "./router/cards"
 import { loginRoutes } from "./router/login"
 
 export const server = new Elysia({
@@ -18,6 +19,7 @@ export const server = new Elysia({
   .use(serverTiming())
   .use(compression())
   .use(loginRoutes)
+  .use(cardRoutes)
 
 server.listen(config.PORT, ({ hostname, port }) => {
   const scheme = config.NODE_ENV === "production" ? "https" : "http"

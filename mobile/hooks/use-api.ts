@@ -1,7 +1,8 @@
-import { useRef } from "react"
+import { useMemo } from "react"
 import { treaty } from "@elysiajs/eden"
 import { type Server } from "@supple/server"
 
+import { useAccount } from "@/hooks/use-sui/sui-account"
 import { config } from "@/lib/config"
 
 const headers: Record<string, string> = {
@@ -9,8 +10,15 @@ const headers: Record<string, string> = {
 }
 
 export function useApi() {
-  const ref = useRef(treaty<Server>(config.EXPO_PUBLIC_API_URL, { headers }))
-  return { api: ref.current }
+  const { account } = useAccount()
+  return {
+    api: useMemo(() => {
+      if (account?.token) {
+        headers["Authorization"] = `Bearer ${account.token}`
+      }
+      return treaty<Server>(config.EXPO_PUBLIC_API_URL, { headers })
+    }, [account?.token]),
+  }
 }
 
 export type ApiType = ReturnType<typeof treaty<Server>>

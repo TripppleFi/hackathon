@@ -15,6 +15,7 @@ import { parse, useURL } from "expo-linking"
 
 import { useApi, type ApiType } from "@/hooks/use-api"
 import { useStorage } from "@/hooks/use-storage"
+import { useAccount } from "@/hooks/use-sui/sui-account"
 import { config } from "@/lib/config"
 
 function useSuiNetwork() {
@@ -72,11 +73,9 @@ function useToken() {
 
 function useLogin() {
   const { api } = useApi()
+  const { setAccount } = useAccount()
   const { resetKeypair } = useKeypair()
   const [ceremony, setCeremony] = useStorage<CeremonyResponse>("ceremony", null)
-  const [account, setAccount] = useStorage<AuthResponse>("account", null, {
-    requireAuthentication: true,
-  })
 
   const beginCeremony = async (data: CeremonyPayload) => {
     const response = await api.auth.ceremony.post(data)
@@ -98,11 +97,11 @@ function useLogin() {
     resetKeypair()
   }
 
-  return { ceremony, beginCeremony, authenticate, account, logout }
+  return { ceremony, beginCeremony, authenticate, logout }
 }
 
 function useSui() {
-  const { account } = useLogin()
+  const { account } = useAccount()
   const { keypair } = useKeypair()
   const suiClient = useSuiClient()
 
@@ -161,9 +160,6 @@ type CeremonyResponse = Awaited<
 >["data"]
 
 type AuthPayload = Parameters<ApiType["auth"]["login"]["post"]>[0]
-type AuthResponse = Awaited<
-  ReturnType<ApiType["auth"]["login"]["post"]>
->["data"]
 
 type ExecuteTransactionBlockProps = Pick<
   ExecuteTransactionBlockParams,

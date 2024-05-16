@@ -8,7 +8,8 @@ import {
   jwtToAddress,
 } from "@mysten/zklogin"
 import { ip } from "address"
-import { jwtDecode } from "jwt-decode"
+import * as jose from "jose"
+import { Result } from "oxide.ts"
 
 import { users } from "../db/schema"
 import { config } from "../lib/config"
@@ -95,7 +96,7 @@ export const loginRoutes = new Elysia({ name: "@router/auth", prefix: "auth" })
   .post(
     "/login",
     async ({ body, httpErrors, db }) => {
-      const jwt = jwtDecode(body.token)
+      const jwt = jose.decodeJwt(body.token)
       if (!jwt.sub || !jwt.iss) {
         throw httpErrors.BadRequest()
       }
@@ -144,11 +145,26 @@ export const loginRoutes = new Elysia({ name: "@router/auth", prefix: "auth" })
         throw httpErrors.Internal()
       }
 
+      const token = await Result.safe(
+        new jose.SignJWT({
+          sub: user.id,
+        })
+          .setProtectedHeader({ alg: "HS256" })
+          .setIssuedAt()
+          .setExpirationTime("30 days")
+          .sign(new TextEncoder().encode(config.APP_SECRET)),
+      )
+
+      if (token.isErr()) {
+        throw httpErrors.Internal()
+      }
+
       return {
         maxEpoch,
         salt: user.salt,
         sub: String(jwt.sub),
         aud: String(jwt.aud),
+        token: token.unwrap(),
         proofs: proofs.unwrap(),
         address: user.address,
       }

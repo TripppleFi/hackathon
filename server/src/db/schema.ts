@@ -1,17 +1,31 @@
-import { sql, type BuildColumns } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import {
   sqliteTable,
   text,
   unique,
-  type SQLiteColumnBuilderBase,
-  type SQLiteTableExtraConfig,
+  type SQLiteTableFn,
 } from "drizzle-orm/sqlite-core"
 
 import { generateId } from "../lib/utils"
 
+const id = text("id").notNull().primaryKey().$default(generateId)
+const createTable: SQLiteTableFn = (name, columns, extraConfig) =>
+  sqliteTable(
+    name,
+    {
+      id,
+      ...columns,
+      createdAt: text("created_at")
+        .notNull()
+        .default(sql`(CURRENT_TIMESTAMP)`),
+    },
+    extraConfig,
+  )
+
 export const users = createTable(
-  "user",
+  "users",
   {
+    id,
     provider: text("provider").notNull(),
     providerId: text("provider_id").notNull(),
     address: text("address").notNull().unique(),
@@ -20,25 +34,19 @@ export const users = createTable(
   t => ({ composite: unique().on(t.provider, t.providerId) }),
 )
 
-function createTable<
-  TTableName extends string,
-  TColumnsMap extends Record<string, SQLiteColumnBuilderBase>,
->(
-  name: TTableName,
-  columns: TColumnsMap,
-  extraConfig?: (
-    self: BuildColumns<TTableName, TColumnsMap, "sqlite">,
-  ) => SQLiteTableExtraConfig,
-) {
-  return sqliteTable(
-    name,
-    {
-      id: text("id").notNull().primaryKey().$default(generateId),
-      ...columns,
-      createdAt: text("created_at")
-        .notNull()
-        .default(sql`(CURRENT_TIMESTAMP)`),
-    },
-    extraConfig,
-  )
-}
+export const cards = createTable("cards", {
+  id,
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  label: text("label").notNull(),
+  address: text("address").notNull(),
+  privateKey: text("private_key").notNull(),
+  nameOnCard: text("name_on_card"),
+  accountNumber: text("account_number"),
+  expiry: text("expiry"),
+  securityCode: text("security_code"),
+  status: text("status", { enum: ["initiated", "created"] }).default(
+    "initiated",
+  ),
+})

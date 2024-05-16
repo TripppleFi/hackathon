@@ -4,11 +4,11 @@ import { type BottomTabBarProps } from "@react-navigation/bottom-tabs"
 import { Redirect, Tabs } from "expo-router"
 
 import { Text } from "@/components/text"
-import { useSui } from "@/hooks/use-sui"
+import { useAccount } from "@/hooks/use-sui"
 import { cn } from "@/lib/utils"
 
 export default function TabLayout() {
-  const { account } = useSui()
+  const { account } = useAccount()
   if (!account) {
     return <Redirect href="/login" />
   }
