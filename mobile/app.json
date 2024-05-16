@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Supple Finance",
-    "slug": "supple",
+    "name": "Trippple",
+    "slug": "trippple",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "com.supple.fi",
+    "scheme": "com.trippple.fi",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",

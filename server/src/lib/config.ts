@@ -12,7 +12,7 @@ export const config = z
   .object({
     NODE_ENV: z.enum(["production", "development"]).default("development"),
     PORT: z.coerce.number().default(3000),
-    APP_NAME: z.string().default("Supple.fi"),
+    APP_NAME: z.string().default("Trippple.fi"),
     APP_URL: z.preprocess(
       url => url ?? `http://${ip()}:${process.env.PORT ?? "3000"}`,
       z.string(),

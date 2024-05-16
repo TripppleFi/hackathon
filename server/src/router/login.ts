@@ -47,7 +47,7 @@ export const loginRoutes = new Elysia({ name: "@router/auth", prefix: "auth" })
       const app =
         config.NODE_ENV === "development"
           ? `exp://${ip()}:8081/--/login`
-          : `com.supple.fi://login`
+          : `com.trippple.fi://login`
 
       const params = new URLSearchParams({
         nonce,

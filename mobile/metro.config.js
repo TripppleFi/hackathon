@@ -10,7 +10,7 @@ const config = getDefaultConfig(projectRoot)
 // If your monorepo tooling can give you the list of monorepo workspaces linked
 // in your app workspace, you can automate this list instead of hardcoding them.
 const monorepoPackages = {
-  "@supple/server": path.resolve(monorepoRoot, "server"),
+  "@trippple/server": path.resolve(monorepoRoot, "server"),
 }
 
 // 1. Watch the local app folder, and only the shared packages (limiting the scope and speeding it up)

@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { treaty } from "@elysiajs/eden"
-import { type Server } from "@supple/server"
+import { type Server } from "@trippple/server"
 
 import { useAccount } from "@/hooks/use-sui/sui-account"
 import { config } from "@/lib/config"

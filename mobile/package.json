@@ -1,5 +1,5 @@
 {
-  "name": "@supple/mobile",
+  "name": "@trippple/mobile",
   "version": "0.0.0",
   "private": true,
   "main": "expo-router/entry",
@@ -25,9 +25,9 @@
     "@react-native-community/netinfo": "11.3.1",
     "@react-navigation/native": "^6.0.2",
     "@shopify/react-native-skia": "1.2.3",
-    "@supple/server": "workspace:*",
     "@tanstack/react-query": "^5.35.1",
     "@total-typescript/ts-reset": "^0.5.1",
+    "@trippple/server": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.11",
