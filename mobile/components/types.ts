@@ -12,6 +12,8 @@ type SlottableViewProps = ComponentPropsWithAsChild<typeof View>
 type SlottablePressableProps = ComponentPropsWithAsChild<typeof Pressable>
 type SlottableTextProps = ComponentPropsWithAsChild<typeof Text>
 
+export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<T>
+
 export type {
   ComponentPropsWithAsChild,
   PressableRef,

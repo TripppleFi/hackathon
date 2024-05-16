@@ -17,24 +17,23 @@ import { useApi, type ApiType } from "@/hooks/use-api"
 import { useStorage } from "@/hooks/use-storage"
 import { config } from "@/lib/config"
 
-export function useToken() {
-  const url = useURL()
-  const [token, setToken] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (url) {
-      const parsed = parse(url)
-      const token = parsed.queryParams?.["id_token"]
-      if (token) {
-        setToken(String(token))
-      }
-    }
-  }, [url])
-
-  return { token }
+function useSuiNetwork() {
+  return { network: config.EXPO_PUBLIC_SUI_NETWORK }
 }
 
-export function useKeypair() {
+function useSuiClient() {
+  const { network } = useSuiNetwork()
+  return useMemo(
+    () =>
+      new SuiClient({
+        url: `https://sui-${network}-endpoint.blockvision.org/`,
+      }),
+    [],
+  )
+  // return useMemo(() => new SuiClient({ url: getFullnodeUrl(network) }), [])
+}
+
+function useKeypair() {
   const [ephemeral, setEphemeral] = useStorage(
     "ephemeral",
     Ed25519Keypair.generate().getSecretKey(),
@@ -54,17 +53,24 @@ export function useKeypair() {
   }
 }
 
-type CeremonyPayload = Parameters<ApiType["auth"]["ceremony"]["post"]>[0]
-type CeremonyResponse = Awaited<
-  ReturnType<ApiType["auth"]["ceremony"]["post"]>
->["data"]
+function useToken() {
+  const url = useURL()
+  const [token, setToken] = useState<string | null>(null)
 
-export type AuthPayload = Parameters<ApiType["auth"]["login"]["post"]>[0]
-type AuthResponse = Awaited<
-  ReturnType<ApiType["auth"]["login"]["post"]>
->["data"]
+  useEffect(() => {
+    if (url) {
+      const parsed = parse(url)
+      const token = parsed.queryParams?.["id_token"]
+      if (token) {
+        setToken(String(token))
+      }
+    }
+  }, [url])
 
-export function useLogin() {
+  return { token }
+}
+
+function useLogin() {
   const { api } = useApi()
   const { resetKeypair } = useKeypair()
   const [ceremony, setCeremony] = useStorage<CeremonyResponse>("ceremony", null)
@@ -95,19 +101,10 @@ export function useLogin() {
   return { ceremony, beginCeremony, authenticate, account, logout }
 }
 
-type ExecuteTransactionBlockProps = Pick<
-  ExecuteTransactionBlockParams,
-  "options" | "requestType"
-> & {
-  transactionBlock: TransactionBlock
-}
-
-export function useSui() {
+function useSui() {
   const { account } = useLogin()
   const { keypair } = useKeypair()
-  const suiClient = new SuiClient({
-    url: getFullnodeUrl(config.EXPO_PUBLIC_SUI_NETWORK),
-  })
+  const suiClient = useSuiClient()
 
   const executeTransactionBlock = async ({
     transactionBlock,
@@ -142,16 +139,47 @@ export function useSui() {
   }
 
   const requestAirdrop = async () => {
-    await requestSuiFromFaucetV0({
+    console.log("aidropping......")
+    const response = await requestSuiFromFaucetV0({
       host: getFaucetHost("devnet"),
       recipient: String(account?.address),
     })
+
+    if (response.error) {
+      console.log("error:", response.error)
+    } else {
+      console.log("done")
+    }
   }
 
-  return {
-    suiClient,
-    executeTransactionBlock,
-    requestAirdrop,
-    account: account!,
-  }
+  return { executeTransactionBlock, requestAirdrop, account: account! }
 }
+
+type CeremonyPayload = Parameters<ApiType["auth"]["ceremony"]["post"]>[0]
+type CeremonyResponse = Awaited<
+  ReturnType<ApiType["auth"]["ceremony"]["post"]>
+>["data"]
+
+type AuthPayload = Parameters<ApiType["auth"]["login"]["post"]>[0]
+type AuthResponse = Awaited<
+  ReturnType<ApiType["auth"]["login"]["post"]>
+>["data"]
+
+type ExecuteTransactionBlockProps = Pick<
+  ExecuteTransactionBlockParams,
+  "options" | "requestType"
+> & {
+  transactionBlock: TransactionBlock
+}
+
+export {
+  useSuiNetwork,
+  useSuiClient,
+  useKeypair,
+  useToken,
+  useLogin,
+  useSui,
+  type AuthPayload,
+}
+
+export { TransactionBlock } from "@mysten/sui.js/transactions"

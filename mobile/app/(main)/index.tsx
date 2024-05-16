@@ -1,21 +1,47 @@
-import { ScrollView, SectionList, View } from "react-native"
+import { useMemo, useRef } from "react"
+import { Controller, useForm } from "react-hook-form"
+import {
+  Dimensions,
+  ScrollView,
+  SectionList,
+  View,
+  ViewProps,
+} from "react-native"
+import QRCode from "react-native-qrcode-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useSuiClientQuery } from "@mysten/dapp-kit"
-import { useQuery } from "@tanstack/react-query"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { type SuiTransactionBlockResponse } from "@mysten/sui.js/client"
+import * as Clipboard from "expo-clipboard"
+import * as r from "radash"
+import { z } from "zod"
 
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  type BottomSheetModalMethods,
+} from "@/components/bottom-sheet"
 import { Button } from "@/components/button"
 import { Currency } from "@/components/currency"
 import { Icon } from "@/components/icon"
+import { Input } from "@/components/input"
 import { Label, Subheading, Text } from "@/components/text"
 import { Container } from "@/components/view"
-import { useBalance } from "@/hooks/use-queries"
-import { useSui } from "@/hooks/use-sui"
-import { idFactory } from "@/lib/utils"
+import {
+  TransactionBlock,
+  useSui,
+  useSuiClientQueries,
+  useSuiClientQuery,
+} from "@/hooks/use-sui"
+import { chunk } from "@/lib/array"
+import { date } from "@/lib/date"
+import { activityParser } from "@/lib/parsers"
+import { qc } from "@/lib/query"
+import { cn, shortenAddress } from "@/lib/utils"
 
-const id = idFactory("Home")
 export default function IndexScreen() {
-  const balance = useBalance()
+  const { account } = useSui()
   const insets = useSafeAreaInsets()
+  const balance = useSuiClientQuery("getBalance", { owner: account.address })
   const amount = Number(balance.data?.totalBalance ?? 0)
 
   return (
@@ -29,14 +55,8 @@ export default function IndexScreen() {
       <Container>
         <Label className="mb-1">Wallet Actions</Label>
         <View className="flex-row justify-between gap-4">
-          <Button variant="default" className="flex-1">
-            <Icon name="MoveDownLeft" variant="default" />
-            <Text>Deposit</Text>
-          </Button>
-          <Button variant="outline" className="flex-1">
-            <Icon name="MoveUpRight" variant="outline" />
-            <Text>Send</Text>
-          </Button>
+          <DepositButton />
+          <SendButton />
         </View>
       </Container>
       <Activity />
@@ -45,61 +65,269 @@ export default function IndexScreen() {
 }
 
 function Activity() {
-  const { account, suiClient } = useSui()
-  const activity = useQuery({
-    queryKey: ["activity"],
-    queryFn() {
-      return suiClient.queryTransactionBlocks({
-        filter: { FromOrToAddress: { addr: account.address } },
-      })
-    },
+  const { account } = useSui()
+  const { data } = useSuiClientQueries({
+    queries: [
+      {
+        method: "queryTransactionBlocks",
+        params: { filter: { FromAddress: account.address } },
+      },
+      {
+        method: "queryTransactionBlocks",
+        params: { filter: { ToAddress: account.address } },
+      },
+    ],
+    combine: res => ({
+      data: r.unique(
+        res.flatMap(res => res.data?.data ?? []),
+        i => i.digest,
+      ),
+      isSuccess: res.every(res => res.isSuccess),
+      isPending: res.some(res => res.isPending),
+      isError: res.some(res => res.isError),
+    }),
   })
 
-  const DATA = [
-    {
-      title: "Main dishes",
-      data: ["Pizza", "Burger", "Risotto"],
-    },
-    {
-      title: "Sides",
-      data: ["French Fries", "Onion Rings", "Fried Shrimps"],
-    },
-    {
-      title: "Drinks",
-      data: ["Water", "Coke", "Beer"],
-    },
-    {
-      title: "Desserts",
-      data: ["Cheese Cake", "Ice Cream"],
-    },
-  ]
+  const validateResponse = (response: SuiTransactionBlockResponse) => {
+    const result = activityParser.safeParse(response)
+    if (result.error) return null
+
+    const meIndex = result.data.balanceChanges.findIndex(
+      change => change.owner.AddressOwner === account.address,
+    )
+
+    if (meIndex === -1) return null
+
+    const change = result.data.balanceChanges[meIndex]
+    const sender = change.amount < 0
+
+    return {
+      sender,
+      digest: result.data.digest,
+      action: sender ? "send" : "receive",
+      amount: result.data.balanceChanges[meIndex === 0 ? 0 : 1].amount,
+      account:
+        result.data.balanceChanges[meIndex === 0 ? 1 : 0].owner.AddressOwner,
+      createdAt: date(Number(result.data.timestampMs)).fromNow(),
+    }
+  }
+
+  const activity = useMemo(() => {
+    return r
+      .chain(
+        (piped: SuiTransactionBlockResponse[]) =>
+          r.sort(piped, sub => Number(sub.timestampMs), true),
+        piped =>
+          chunk(piped, sub =>
+            date(Number(sub.timestampMs)).startOf("date").format("MMM D, YYYY"),
+          ),
+        piped =>
+          r.listify(piped, (key, data) => ({
+            key,
+            data: data?.map(validateResponse),
+          })),
+      )(data)
+      .filter(({ data }) => data.filter(Boolean).length > 0)
+  }, [data])
 
   return (
     <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
       <Subheading className="pt-4">Activity</Subheading>
-      <ScrollView>
+      {/* <ScrollView>
         <Text>{JSON.stringify(activity, null, 2)}</Text>
-      </ScrollView>
-      {/* <SectionList
-        sections={DATA}
-        keyExtractor={() => id.next("txSection")}
+      </ScrollView> */}
+      <SectionList
+        sections={activity}
+        keyExtractor={item => item!.digest}
+        renderSectionHeader={({ section }) => <Label>{section.key}</Label>}
         showsVerticalScrollIndicator={false}
-        renderSectionHeader={({ section }) => <Label>{section.title}</Label>}
-        renderItem={() => (
-          <View className="flex-row items-center gap-x-4 py-1">
+        renderItem={({ item }) => (
+          <View className="flex-row gap-x-4 py-1">
             <View className="bg-secondary rounded-full p-2">
-              <Icon name="ArrowDownLeft" variant="outline" size={24} />
+              <Icon
+                name={
+                  item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
+                }
+                variant="outline"
+                size={24}
+              />
             </View>
             <View className="flex-1">
-              <Text>lorem ipsum</Text>
-              <Text className="text-muted-foreground text-xs">04:03 PM</Text>
+              <Text>{shortenAddress(item?.account ?? "")}</Text>
+              <Text className="text-muted-foreground text-xs">
+                {item?.createdAt}
+              </Text>
             </View>
             <View>
-              <Currency amount={-20} />
+              <Currency
+                className={cn("font-uiBold text-lg")}
+                amount={(item?.amount ?? 0) / 1e9}
+              />
             </View>
           </View>
         )}
-      /> */}
+      />
     </Container>
+  )
+}
+
+function DepositButton(props: ViewProps) {
+  const { account } = useSui()
+  const width = Dimensions.get("window").width
+  const modalRef = useRef<BottomSheetModalMethods>(null!)
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(account.address)
+  }
+
+  return (
+    <View className="flex-1" {...props}>
+      <Button
+        variant="default"
+        className="flex-1"
+        onPress={() => modalRef.current.present()}
+      >
+        <Icon name="ArrowDownLeft" variant="default" />
+        <Text>Deposit</Text>
+      </Button>
+      <BottomSheetModal ref={modalRef}>
+        <BottomSheetView className="px-8 py-4">
+          <View className="flex-row items-center justify-between pb-4">
+            <Subheading>Deposit</Subheading>
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => modalRef.current.close()}
+            >
+              <Icon name="Eye" variant="outline" />
+              <Text>Hide</Text>
+            </Button>
+          </View>
+          <View className="items-center pt-12">
+            <QRCode value={account.address} size={width * 0.65} />
+          </View>
+          <View className="flex-row items-center justify-between gap-x-4 pt-4">
+            <View className="bg-muted flex-1 rounded-md px-4 py-1">
+              <Text className="text-center">
+                {shortenAddress(account.address, 24)}
+              </Text>
+            </View>
+            <Button variant="outline" size="sm" onPress={copyToClipboard}>
+              <Text>Copy</Text>
+            </Button>
+          </View>
+        </BottomSheetView>
+      </BottomSheetModal>
+    </View>
+  )
+}
+
+const sendValidator = z.object({
+  amount: z.coerce.number().positive(),
+  address: z.string(),
+})
+
+function SendButton(props: ViewProps) {
+  const { executeTransactionBlock } = useSui()
+  const modalRef = useRef<BottomSheetModalMethods>(null!)
+  const form = useForm<z.infer<typeof sendValidator>>({
+    resolver: zodResolver(sendValidator),
+    defaultValues: {
+      amount: Number((Math.random() * 10).toFixed(5)),
+      address:
+        "0xd01c593d5e35b66ba6c15cf5dbe2da581fd7e8ed5a9596f1e4f7830180b88f14",
+    },
+  })
+
+  const handleSubmit = async (args: z.infer<typeof sendValidator>) => {
+    try {
+      const txb = new TransactionBlock()
+      const [coin] = txb.splitCoins(txb.gas, [txb.pure(args.amount * 1e9)])
+      txb.transferObjects([coin], txb.pure(args.address))
+
+      await executeTransactionBlock({ transactionBlock: txb })
+      qc.invalidateQueries()
+      modalRef.current.forceClose()
+    } catch (error) {
+      console.log("error:", error)
+    }
+  }
+
+  return (
+    <View className="flex-1" {...props}>
+      <Button variant="outline" onPress={() => modalRef.current.present()}>
+        <Icon name="ArrowUpRight" variant="outline" />
+        <Text>Send</Text>
+      </Button>
+      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+        <BottomSheetView className="flex-1 px-8 py-4">
+          <View className="flex-row items-center justify-between pb-4">
+            <Subheading>Send Assets</Subheading>
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => modalRef.current.close()}
+            >
+              <Icon name="Eye" variant="outline" />
+              <Text>Hide</Text>
+            </Button>
+          </View>
+          <View className="flex-1 space-y-4">
+            <View>
+              <Controller
+                name="amount"
+                control={form.control}
+                render={({ field: { onChange, onBlur, value }, formState }) => (
+                  <View>
+                    <Label className="mb-1">Amount</Label>
+                    <Input
+                      keyboardType="numeric"
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value.toString()}
+                    />
+                    {formState.errors.amount && (
+                      <Text className="text-red-500">
+                        {formState.errors.amount.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+            <View>
+              <Controller
+                name="address"
+                control={form.control}
+                render={({ field: { onChange, onBlur, value }, formState }) => (
+                  <View>
+                    <Label className="mb-1">Recipient</Label>
+                    <Input
+                      numberOfLines={3}
+                      keyboardType="numeric"
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value}
+                      multiline
+                    />
+                    {formState.errors.address && (
+                      <Text className="text-red-500">
+                        {formState.errors.address.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+          <Button
+            disabled={!form.formState.isValid}
+            onPress={form.handleSubmit(handleSubmit)}
+          >
+            <Icon name="ArrowUpRight" />
+            <Text>Send</Text>
+          </Button>
+        </BottomSheetView>
+      </BottomSheetModal>
+    </View>
   )
 }

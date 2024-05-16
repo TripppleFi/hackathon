@@ -86,11 +86,11 @@ function CardButtons() {
       <Label className="mb-1">Card Actions</Label>
       <View className="flex-row justify-between gap-4">
         <Button variant="default" className="flex-1">
-          <Icon name="MoveDownLeft" variant="default" />
+          <Icon name="ArrowDownLeft" variant="default" />
           <Text>Fund Card</Text>
         </Button>
         <Button variant="outline" className="flex-1">
-          <Icon name="MoveUpRight" variant="outline" />
+          <Icon name="ArrowUpRight" variant="outline" />
           <Text>Withdraw</Text>
         </Button>
         <Button variant="secondary" size="icon" onPress={handleShowCardDetails}>
@@ -161,7 +161,7 @@ function CardDetails() {
             onPress={() => detailsModalRef.current.close()}
           >
             <Icon name="Eye" variant="outline" />
-            <Text>Hide info</Text>
+            <Text>Hide</Text>
           </Button>
         </View>
         <View className="h-56 pb-4">

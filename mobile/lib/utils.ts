@@ -25,8 +25,8 @@ export function shortenAddress(address: string, offset = 6) {
 
 export function numberFormat(number: number) {
   return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+    minimumFractionDigits: 2,
   }).format(number)
 }
 

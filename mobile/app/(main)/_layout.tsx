@@ -4,12 +4,11 @@ import { type BottomTabBarProps } from "@react-navigation/bottom-tabs"
 import { Redirect, Tabs } from "expo-router"
 
 import { Text } from "@/components/text"
-import { useLogin } from "@/hooks/use-sui"
+import { useSui } from "@/hooks/use-sui"
 import { cn } from "@/lib/utils"
 
 export default function TabLayout() {
-  const { account } = useLogin()
-
+  const { account } = useSui()
   if (!account) {
     return <Redirect href="/login" />
   }
@@ -31,8 +30,8 @@ export default function TabLayout() {
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
-    <View className="px-4 pb-4 pt-2">
-      <View className="bg-background border-foreground/30 flex-row rounded-md border px-2 py-2">
+    <View className="px-4 pb-4 pt-0">
+      <View className="bg-background border-foreground/30 flex-row rounded-full border px-1 py-1">
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key]
 
@@ -68,7 +67,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
           const tabClasses = cn(
             "flex-1 py-1.5",
-            isFocused && "bg-foreground rounded-md",
+            isFocused && "bg-foreground rounded-full",
           )
 
           const textClasses = cn(
