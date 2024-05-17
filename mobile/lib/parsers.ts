@@ -8,6 +8,6 @@ export const balanceChange = z.object({
 
 export const activityParser = z.object({
   digest: z.string(),
-  balanceChanges: z.tuple([balanceChange, balanceChange]),
+  balanceChanges: z.array(balanceChange),
   timestampMs: z.coerce.number(),
 })

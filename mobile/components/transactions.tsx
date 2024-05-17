@@ -53,16 +53,20 @@ export function Transaction({ address, label }: TransactionProps) {
 
     if (meIndex === -1) return null
 
-    const change = result.data.balanceChanges[meIndex]
-    const sender = change.amount < 0
+    const meChange = result.data.balanceChanges[meIndex]
+    const sender = meChange.amount < 0
+    const otherIndex = result.data.balanceChanges.findIndex(change => {
+      return sender ? change.owner.AddressOwner !== address : change.amount < 0
+    })
+
+    if (otherIndex === -1) return null
 
     return {
       sender,
       digest: result.data.digest,
       action: sender ? "send" : "receive",
-      amount: result.data.balanceChanges[meIndex === 0 ? 0 : 1].amount,
-      account:
-        result.data.balanceChanges[meIndex === 0 ? 1 : 0].owner.AddressOwner,
+      amount: result.data.balanceChanges[meIndex].amount,
+      account: result.data.balanceChanges[otherIndex].owner.AddressOwner,
       createdAt: date(Number(result.data.timestampMs)).fromNow(),
     }
   }
@@ -90,7 +94,7 @@ export function Transaction({ address, label }: TransactionProps) {
       <Subheading className="pt-4">{label}</Subheading>
       <SectionList
         sections={activity}
-        keyExtractor={item => item!.digest}
+        keyExtractor={item => String(item?.digest)}
         renderSectionHeader={({ section }) => <Label>{section.key}</Label>}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (

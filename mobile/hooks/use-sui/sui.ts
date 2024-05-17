@@ -7,7 +7,7 @@ import {
   type ExecuteTransactionBlockParams,
 } from "@mysten/sui.js/client"
 import { decodeSuiPrivateKey } from "@mysten/sui.js/cryptography"
-import { getFaucetHost, requestSuiFromFaucetV0 } from "@mysten/sui.js/faucet"
+import { getFaucetHost, requestSuiFromFaucetV1 } from "@mysten/sui.js/faucet"
 import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519"
 import { TransactionBlock } from "@mysten/sui.js/transactions"
 import { genAddressSeed, getZkLoginSignature } from "@mysten/zklogin"
@@ -141,7 +141,7 @@ function useSui() {
     if (config.EXPO_PUBLIC_SUI_NETWORK === "mainnet") return
 
     console.log("aidropping......")
-    const response = await requestSuiFromFaucetV0({
+    const response = await requestSuiFromFaucetV1({
       host: getFaucetHost(config.EXPO_PUBLIC_SUI_NETWORK),
       recipient: String(account?.address),
     })
