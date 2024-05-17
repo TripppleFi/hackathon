@@ -138,9 +138,11 @@ function useSui() {
   }
 
   const requestAirdrop = async () => {
+    if (config.EXPO_PUBLIC_SUI_NETWORK === "mainnet") return
+
     console.log("aidropping......")
     const response = await requestSuiFromFaucetV0({
-      host: getFaucetHost("devnet"),
+      host: getFaucetHost(config.EXPO_PUBLIC_SUI_NETWORK),
       recipient: String(account?.address),
     })
 
