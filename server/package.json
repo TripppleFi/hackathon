@@ -23,6 +23,7 @@
     "@mysten/zklogin": "^0.6.3",
     "@paralleldrive/cuid2": "^2.2.2",
     "address": "^2.0.2",
+    "bignumber.js": "^9.1.2",
     "drizzle-orm": "^0.30.10",
     "elysia": "^1.0.17",
     "elysia-compression": "^0.0.7",

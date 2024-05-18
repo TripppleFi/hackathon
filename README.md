@@ -10,3 +10,11 @@
 - [transaction]: Cetus
 - [cardfunding]: Suilend deposit
 - [deposit]: Wormhole -> Cetus
+
+## Road to mainnet
+
+- Brand Identity
+- Better UI/UX
+- Multi-currency
+- Smart Contracts
+- Security Audits

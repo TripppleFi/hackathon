@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia"
 import { decodeSuiPrivateKey } from "@mysten/sui.js/cryptography"
 import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519"
 import { TransactionBlock } from "@mysten/sui.js/transactions"
+import BigNumber from "bignumber.js"
 import { eq } from "drizzle-orm"
 import * as r from "radash"
 import { z } from "zod"
@@ -108,7 +109,11 @@ export const cardRoutes = new Elysia({ name: "@router/cards", prefix: "cards" })
           )
 
           const txb = new TransactionBlock()
-          const [coin] = txb.splitCoins(txb.gas, [txb.pure(body.amount * 1e9)])
+          const amount = new BigNumber(body.amount)
+          const [coin] = txb.splitCoins(txb.gas, [
+            txb.pure(amount.multipliedBy(1e9).toNumber()),
+          ])
+
           txb.transferObjects([coin], txb.pure(session.user.address))
           txb.setSender(card.address)
 

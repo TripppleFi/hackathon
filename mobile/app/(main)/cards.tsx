@@ -8,6 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import BigNumber from "bignumber.js"
 import * as Clipboard from "expo-clipboard"
 import { z } from "zod"
 
@@ -353,7 +354,10 @@ function FundButton(props: ButtonProps) {
   const mutation = useMutation({
     async mutationFn(args: z.infer<typeof fundCardValidator>) {
       const txb = new TransactionBlock()
-      const [coin] = txb.splitCoins(txb.gas, [txb.pure(args.amount * 1e9)])
+      const [coin] = txb.splitCoins(txb.gas, [
+        txb.pure(new BigNumber(args.amount).multipliedBy(1e9).toNumber()),
+      ])
+
       txb.transferObjects([coin], txb.pure(activeCard?.address))
 
       const result = await executeTransactionBlock({ transactionBlock: txb })

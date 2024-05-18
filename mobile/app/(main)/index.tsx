@@ -4,6 +4,7 @@ import { Dimensions, View, ViewProps } from "react-native"
 import QRCode from "react-native-qrcode-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { zodResolver } from "@hookform/resolvers/zod"
+import BigNumber from "bignumber.js"
 import * as Clipboard from "expo-clipboard"
 import { z } from "zod"
 
@@ -119,7 +120,11 @@ function SendButton(props: ViewProps) {
   const handleSubmit = async (args: z.infer<typeof sendValidator>) => {
     try {
       const txb = new TransactionBlock()
-      const [coin] = txb.splitCoins(txb.gas, [txb.pure(args.amount * 1e9)])
+      const amount = new BigNumber(args.amount)
+      const [coin] = txb.splitCoins(txb.gas, [
+        txb.pure(amount.multipliedBy(1e9).toNumber()),
+      ])
+
       txb.transferObjects([coin], txb.pure(args.address))
 
       await executeTransactionBlock({ transactionBlock: txb })
