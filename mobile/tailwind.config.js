@@ -4,28 +4,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        border: "hsl(0 0% 89.8%)",
-        background: "hsl(0 0% 100%)",
-        foreground: "hsl(0 0% 3.9%)",
+        border: "hsl(0 0% 14.9%)",
+        background: "hsl(0 0% 3.9%)",
+        foreground: "hsl(0 0% 98%)",
         primary: {
-          DEFAULT: "hsl(0 0% 9%)",
-          foreground: "hsl(0 0% 98%)",
+          DEFAULT: "hsl(0 0% 98%)",
+          foreground: "hsl(0 0% 9%)",
         },
         secondary: {
-          DEFAULT: "hsl(0 0% 96.1%)",
-          foreground: "hsl(0 0% 9%)",
+          DEFAULT: "hsl(0 0% 14.9%)",
+          foreground: "hsl(0 0% 98%)",
         },
         muted: {
-          DEFAULT: "hsl(0 0% 96.1%)",
-          foreground: "hsl(0 0% 45.1%)",
+          DEFAULT: "hsl(0 0% 14.9%)",
+          foreground: "hsl(0 0% 63.9%)",
         },
         accent: {
-          DEFAULT: "hsl(0 0% 96.1%)",
-          foreground: "hsl(0 0% 9%)",
+          DEFAULT: "hsl(0 0% 14.9%)",
+          foreground: "hsl(0 0% 98%)",
         },
         card: {
-          DEFAULT: "hsl(0 0% 100%)",
-          foreground: "hsl(0 0% 3.9%)",
+          DEFAULT: "hsl(0 0% 3.9%)",
+          foreground: "hsl(0 0% 98%)",
         },
       },
       fontFamily: {

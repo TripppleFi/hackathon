@@ -30,8 +30,8 @@ export function Icon({
 }: IconProps) {
   const LucideIcon = icons[name]
   const colors: Record<typeof variant, ColorValue> = {
-    default: "white",
-    outline: "black",
+    default: "black",
+    outline: "white",
     secondary: "gray",
     ghost: "black",
   }

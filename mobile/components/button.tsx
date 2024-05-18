@@ -10,7 +10,8 @@ const buttonVariants = cva("flex-row items-center justify-center rounded-md", {
   variants: {
     variant: {
       default: "bg-primary shadow active:bg-primary/90",
-      outline: "border border-input bg-background shadow-sm active:bg-accent",
+      outline:
+        "border border-foreground/30 bg-background shadow-sm active:bg-accent",
       secondary:
         "border border-input bg-secondary shadow-sm active:bg-secondary/80",
       ghost: "active:bg-accent",

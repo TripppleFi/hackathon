@@ -90,7 +90,7 @@ export function Transaction({ address, label }: TransactionProps) {
   }, [data])
 
   return (
-    <Container className="bg-background border-primary/50 mt-8 flex-1 border-t">
+    <Container className="bg-background border-foreground/30 mt-8 flex-1 border-t">
       <Subheading className="pt-4">{label}</Subheading>
       <SectionList
         sections={activity}
@@ -106,7 +106,7 @@ export function Transaction({ address, label }: TransactionProps) {
                 name={
                   item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
                 }
-                variant="outline"
+                variant="secondary"
                 size={24}
               />
             </View>

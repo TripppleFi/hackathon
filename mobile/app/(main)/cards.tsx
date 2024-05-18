@@ -185,19 +185,19 @@ function Card({ card }: CardProps) {
         <View className="bg-foreground flex-1 justify-between rounded-xl p-8">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-x-4">
-              <BrandIcon className="text-white" name="visa" size={36} />
-              <Text className="font-uiBold">{card.label}</Text>
+              <BrandIcon className="text-background" name="visa" size={36} />
+              <Text className="font-uiBold text-background">{card.label}</Text>
             </View>
             {card.status !== "ready" && (
               <View>
                 <View className="border-background rounded-sm border px-1">
-                  <Label>{card.status}</Label>
+                  <Label className="text-background">{card.status}</Label>
                 </View>
               </View>
             )}
           </View>
           <View>
-            <Label>Total Balance</Label>
+            <Label className="text-background">Total Balance</Label>
             <Currency
               className="text-background font-uiMedium text-3xl"
               amount={Number(balance.data?.totalBalance ?? 0) / 1e9}
@@ -206,14 +206,14 @@ function Card({ card }: CardProps) {
           <View className="flex-row justify-between">
             {card.status === "ready" && (
               <View>
-                <Label>PAN</Label>
-                <Text>**** 9233</Text>
+                <Label className="text-background">PAN</Label>
+                <Text className="text-background">**** 9233</Text>
               </View>
             )}
             {card.status === "ready" && (
               <View className="items-end">
-                <Label>Valid Thru</Label>
-                <Text>05/28</Text>
+                <Label className="text-background">Valid Thru</Label>
+                <Text className="text-background">05/28</Text>
               </View>
             )}
           </View>
