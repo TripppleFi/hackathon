@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 const TextClassContext = React.createContext<string | undefined>(undefined)
 const TextClassProvider = TextClassContext.Provider
 
-const Text = createTextComponent("font-uiRegular text-base")
+const Text = createTextComponent("font-uiMedium text-base")
 const Heading = createTextComponent("font-uiBold text-3xl")
 const Subheading = createTextComponent("font-uiMedium text-lg uppercase")
 const Label = createTextComponent(

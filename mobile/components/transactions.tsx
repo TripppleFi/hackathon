@@ -95,10 +95,12 @@ export function Transaction({ address, label }: TransactionProps) {
       <SectionList
         sections={activity}
         keyExtractor={item => String(item?.digest)}
-        renderSectionHeader={({ section }) => <Label>{section.key}</Label>}
+        renderSectionHeader={({ section }) => (
+          <Label className="pb-2.5 pt-4">{section.key}</Label>
+        )}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <View className="flex-row gap-x-4 py-1">
+          <View className="flex-row items-center gap-x-4 py-2.5">
             <View className="bg-secondary rounded-full p-2">
               <Icon
                 name={
@@ -116,7 +118,7 @@ export function Transaction({ address, label }: TransactionProps) {
             </View>
             <View>
               <Currency
-                className={cn("font-uiBold text-lg")}
+                className={cn("font-uiMedium text-lg")}
                 amount={(item?.amount ?? 0) / 1e9}
               />
             </View>
