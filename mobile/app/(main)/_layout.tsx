@@ -4,7 +4,6 @@ import { type BottomTabBarProps } from "@react-navigation/bottom-tabs"
 import { Redirect, Tabs } from "expo-router"
 
 import { Text } from "@/components/text"
-import { SavingsContextProvider } from "@/hooks/use-savings"
 import { useAccount } from "@/hooks/use-sui"
 import { cn } from "@/lib/utils"
 
@@ -15,19 +14,16 @@ export default function TabLayout() {
   }
 
   return (
-    <SavingsContextProvider>
-      <Tabs
-        backBehavior="initialRoute"
-        initialRouteName="index"
-        screenOptions={{ headerShown: false }}
-        tabBar={state => <CustomTabBar {...state} />}
-      >
-        <Tabs.Screen name="index" options={{ title: "Home" }} />
-        <Tabs.Screen name="cards" options={{ title: "Cards" }} />
-        <Tabs.Screen name="savings" options={{ title: "Savings" }} />
-        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
-      </Tabs>
-    </SavingsContextProvider>
+    <Tabs
+      backBehavior="initialRoute"
+      initialRouteName="index"
+      screenOptions={{ headerShown: false }}
+      tabBar={state => <CustomTabBar {...state} />}
+    >
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="cards" options={{ title: "Cards" }} />
+      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+    </Tabs>
   )
 }
 
