@@ -10,7 +10,7 @@ import { icons } from "lucide-react-native"
 
 import { ButtonProps } from "@/components/button"
 
-interface IconProps {
+export interface IconProps {
   name: keyof typeof icons
   variant?: NonNullable<ButtonProps["variant"]>
   className?: string

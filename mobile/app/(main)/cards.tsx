@@ -21,6 +21,7 @@ import { Button, ButtonProps } from "@/components/button"
 import { Currency } from "@/components/currency"
 import { BrandIcon, Icon } from "@/components/icon"
 import { Input } from "@/components/input"
+import { Loader } from "@/components/loader"
 import {
   Heading,
   Label,
@@ -56,6 +57,10 @@ export default function CardsScreen() {
           <View className="flex-1 items-center justify-center space-y-4">
             <Heading>Create your first card</Heading>
             <NewCardButton size="default" />
+          </View>
+        ) : isPending ? (
+          <View className="flex-1 items-center justify-center">
+            <Loader size="lg" />
           </View>
         ) : (
           <>

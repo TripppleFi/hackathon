@@ -5,6 +5,7 @@ import * as r from "radash"
 
 import { Currency } from "@/components/currency"
 import { Icon } from "@/components/icon"
+import { Loader } from "@/components/loader"
 import { Label, Subheading, Text } from "@/components/text"
 import { Container } from "@/components/view"
 import { useSuiClientQueries } from "@/hooks/use-sui"
@@ -19,7 +20,7 @@ interface TransactionProps {
 }
 
 export function Transaction({ address, label }: TransactionProps) {
-  const { data } = useSuiClientQueries({
+  const { data, isPending } = useSuiClientQueries({
     queries: [
       {
         method: "queryTransactionBlocks",
@@ -92,39 +93,46 @@ export function Transaction({ address, label }: TransactionProps) {
   return (
     <Container className="bg-background border-foreground/30 mt-8 flex-1 border-t">
       <Subheading className="pt-4">{label}</Subheading>
-      <SectionList
-        sections={activity}
-        keyExtractor={item => String(item?.digest)}
-        renderSectionHeader={({ section }) => (
-          <Label className="pb-2.5 pt-4">{section.key}</Label>
-        )}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View className="flex-row items-center gap-x-4 py-2.5">
-            <View className="bg-secondary rounded-full p-2">
-              <Icon
-                name={
-                  item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
-                }
-                variant="secondary"
-                size={24}
-              />
+      {isPending && (
+        <View className="flex-1 items-center justify-center">
+          <Loader size="lg" />
+        </View>
+      )}
+      {!isPending && (
+        <SectionList
+          sections={activity}
+          keyExtractor={item => String(item?.digest)}
+          renderSectionHeader={({ section }) => (
+            <Label className="pb-2.5 pt-4">{section.key}</Label>
+          )}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View className="flex-row items-center gap-x-4 py-2.5">
+              <View className="bg-secondary rounded-full p-2">
+                <Icon
+                  name={
+                    item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
+                  }
+                  variant="secondary"
+                  size={24}
+                />
+              </View>
+              <View className="flex-1">
+                <Text>{shortenAddress(item?.account ?? "")}</Text>
+                <Text className="text-muted-foreground text-xs">
+                  {item?.createdAt}
+                </Text>
+              </View>
+              <View>
+                <Currency
+                  className={cn("font-uiMedium text-lg")}
+                  amount={(item?.amount ?? 0) / 1e9}
+                />
+              </View>
             </View>
-            <View className="flex-1">
-              <Text>{shortenAddress(item?.account ?? "")}</Text>
-              <Text className="text-muted-foreground text-xs">
-                {item?.createdAt}
-              </Text>
-            </View>
-            <View>
-              <Currency
-                className={cn("font-uiMedium text-lg")}
-                amount={(item?.amount ?? 0) / 1e9}
-              />
-            </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </Container>
   )
 }
