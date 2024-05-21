@@ -68,7 +68,7 @@ function DepositButton(props: ViewProps) {
         <Icon name="ArrowDownLeft" variant="default" />
         <Text>Deposit</Text>
       </Button>
-      <BottomSheetModal ref={modalRef}>
+      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
         <BottomSheetView className="px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Deposit</Subheading>
@@ -82,12 +82,12 @@ function DepositButton(props: ViewProps) {
             </Button>
           </View>
           <View className="items-center pt-12">
-            <QRCode value={account.address} size={width * 0.65} />
+            <QRCode value={account.address} size={width * 0.55} />
           </View>
           <View className="flex-row items-center justify-between gap-x-4 pt-4">
             <View className="bg-muted flex-1 rounded-md px-4 py-1">
               <Text className="text-center">
-                {shortenAddress(account.address, 24)}
+                {shortenAddress(account.address, 12)}
               </Text>
             </View>
             <Button variant="outline" size="sm" onPress={copyToClipboard}>
@@ -185,8 +185,8 @@ function SendButton(props: ViewProps) {
                   <View>
                     <Label className="mb-1">Recipient</Label>
                     <Input
-                      numberOfLines={3}
                       onBlur={onBlur}
+                      numberOfLines={2}
                       onChangeText={onChange}
                       defaultValue={value}
                       multiline

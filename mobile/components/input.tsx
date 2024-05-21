@@ -13,7 +13,7 @@ const Input = React.forwardRef<React.ElementRef<typeof TextInput>, InputProps>(
         {...props}
         textAlignVertical={props.multiline ? "top" : "center"}
         className={cn(
-          "border-primary/20 min-h-12 bg-background w-full rounded-md border px-3 py-1 text-base shadow-sm",
+          "border-primary/20 min-h-12 bg-background text-foreground w-full rounded-md border px-3 py-1 text-base shadow-sm",
           className,
         )}
       />

@@ -1,4 +1,5 @@
 import { forwardRef, useMemo } from "react"
+import { View } from "react-native"
 import {
   default as Animated,
   Extrapolation,
@@ -9,6 +10,7 @@ import {
   default as BottomSheetCustom,
   BottomSheetModal as BottomSheetModalCustom,
   type BottomSheetBackdropProps,
+  type BottomSheetBackgroundProps,
   type BottomSheetModalProps as BottomSheetModalPropsCustom,
   type BottomSheetProps as BottomSheetPropsCustom,
 } from "@gorhom/bottom-sheet"
@@ -35,7 +37,9 @@ const BottomSheetModal = forwardRef<
     <BottomSheetModalCustom
       {...props}
       ref={ref}
+      backgroundComponent={Background}
       backdropComponent={Backdrop}
+      handleComponent={Handle}
       snapPoints={snapPoints}
       index={index}
     />
@@ -58,6 +62,16 @@ function Backdrop({ animatedIndex, style }: BottomSheetBackdropProps) {
   )
 
   return <Animated.View className="bg-foreground" style={containerStyle} />
+}
+
+function Background(props: BottomSheetBackgroundProps) {
+  return <View className="bg-background rounded-t-3xl" {...props} />
+}
+
+function Handle() {
+  return (
+    <View className="bg-foreground mt-4 h-1.5 w-10 self-center rounded-full" />
+  )
 }
 
 export { BottomSheet, BottomSheetModal }
