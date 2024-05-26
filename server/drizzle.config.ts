@@ -10,5 +10,7 @@ export default {
   verbose: config.NODE_ENV === "development",
   dbCredentials: {
     url: config.DATABASE_URL,
+    authToken: config.DATABASE_TOKEN,
   },
+  tablesFilter: ["api_*"],
 } satisfies Config

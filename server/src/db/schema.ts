@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
-  sqliteTable,
+  sqliteTableCreator,
   text,
   unique,
   type SQLiteTableFn,
@@ -12,8 +12,11 @@ const id = text("id").notNull().primaryKey().$default(generateId)
 const createdAt = text("created_at")
   .notNull()
   .default(sql`(CURRENT_TIMESTAMP)`)
-const createTable: SQLiteTableFn = (name, columns, extraConfig) =>
-  sqliteTable(name, { id, ...columns, createdAt }, extraConfig)
+
+const createTable: SQLiteTableFn = (name, columns, config) => {
+  const creator = sqliteTableCreator(name => `api_${name}`)
+  return creator(name, { id, ...columns, createdAt }, config)
+}
 
 export const users = createTable(
   "users",

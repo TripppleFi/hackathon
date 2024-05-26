@@ -19,6 +19,7 @@ export const config = z
     ),
     APP_SECRET: z.string().min(24),
     DATABASE_URL: z.string().default("db.sqlite"),
+    DATABASE_TOKEN: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string(),
     TWITCH_CLIENT_ID: z.string(),
     SUI_NETWORK: z.nativeEnum(SuiNetwork).default(SuiNetwork.devnet),
