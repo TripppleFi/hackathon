@@ -23,7 +23,6 @@ export function Transaction({ address, label }: TransactionProps) {
 
   return (
     <Container className="bg-background border-foreground/30 mt-8 flex-1 border-t">
-      <Subheading className="pt-4">{label}</Subheading>
       {isPending && <TransactionSkeleton />}
       {!isPending &&
         (data.length === 0 ? (
@@ -40,39 +39,44 @@ export function Transaction({ address, label }: TransactionProps) {
             </View>
           </View>
         ) : (
-          <SectionList
-            sections={data}
-            keyExtractor={item => String(item?.digest)}
-            renderSectionHeader={({ section }) => (
-              <Label className="pb-2.5 pt-4">{section.key}</Label>
-            )}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View className="flex-row items-center gap-x-4 py-2.5">
-                <View className="bg-secondary rounded-full p-2">
-                  <Icon
-                    name={
-                      item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
-                    }
-                    variant="secondary"
-                    size={24}
-                  />
+          <>
+            <Subheading className="pt-4">{label}</Subheading>
+            <SectionList
+              sections={data}
+              keyExtractor={item => String(item?.digest)}
+              renderSectionHeader={({ section }) => (
+                <Label className="pb-2.5 pt-4">{section.key}</Label>
+              )}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View className="flex-row items-center gap-x-4 py-2.5">
+                  <View className="bg-secondary rounded-full p-2">
+                    <Icon
+                      name={
+                        item?.action === "send"
+                          ? "ArrowUpRight"
+                          : "ArrowDownLeft"
+                      }
+                      variant="secondary"
+                      size={24}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text>{shortenAddress(item?.account ?? "")}</Text>
+                    <Text className="text-muted-foreground text-xs">
+                      {item?.createdAt}
+                    </Text>
+                  </View>
+                  <View>
+                    <Currency
+                      className={cn("font-uiMedium text-lg")}
+                      amount={(item?.amount ?? 0) / 1e9}
+                    />
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text> {shortenAddress(item?.account ?? "")}</Text>
-                  <Text className="text-muted-foreground text-xs">
-                    {item?.createdAt}
-                  </Text>
-                </View>
-                <View>
-                  <Currency
-                    className={cn("font-uiMedium text-lg")}
-                    amount={(item?.amount ?? 0) / 1e9}
-                  />
-                </View>
-              </View>
-            )}
-          />
+              )}
+            />
+          </>
         ))}
     </Container>
   )
@@ -106,10 +110,13 @@ export function useTransactions(address?: string) {
 }
 
 const key = idFactory("TransactionSkeleton")
-function TransactionSkeleton() {
+export function TransactionSkeleton() {
   const data = [...new Array(5).keys()]
   return (
     <Skeleton.Group show>
+      <View className="pt-4">
+        <Skeleton width={200} height={24} />
+      </View>
       <View className="pb-2.5 pt-4">
         <Skeleton width={100} height={16} />
       </View>

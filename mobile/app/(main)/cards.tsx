@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import BigNumber from "bignumber.js"
 import * as Clipboard from "expo-clipboard"
+import { Skeleton } from "moti/skeleton"
 import { z } from "zod"
 
 import {
@@ -28,7 +29,6 @@ import { Button, ButtonProps as ButtonPropsCustom } from "@/components/button"
 import { Currency } from "@/components/currency"
 import { BrandIcon, Icon } from "@/components/icon"
 import { Input } from "@/components/input"
-import { Loader } from "@/components/loader"
 import {
   Heading,
   Label,
@@ -36,7 +36,11 @@ import {
   Text,
   TextClassProvider,
 } from "@/components/text"
-import { Transaction, useTransactions } from "@/components/transactions"
+import {
+  Transaction,
+  TransactionSkeleton,
+  useTransactions,
+} from "@/components/transactions"
 import { Container } from "@/components/view"
 import { useApi, type ApiType } from "@/hooks/use-api"
 import { TransactionBlock, useSui, useSuiClientQuery } from "@/hooks/use-sui"
@@ -52,31 +56,32 @@ const CardsContext = createContext<ReturnType<typeof createCardContextProps>>(
 export default function CardsScreen() {
   const insets = useSafeAreaInsets()
   const { isPending, data = [], isError, refetch } = useCards()
+  const context = createCardContextProps(data)
   const showCreateNew = !isError && !isPending && data.length === 0
 
+  if (isPending) return <CardScreenSkeleton />
+
   return (
-    <CardsContext.Provider value={createCardContextProps(data)}>
+    <CardsContext.Provider value={context}>
       <View
         className="bg-muted flex-1"
         style={{ paddingTop: showCreateNew ? 0 : insets.top }}
       >
-        {!showCreateNew && (
-          <Container className="flex-row items-center justify-between pt-4">
-            <Heading>My Cards</Heading>
-            <NewCardButton onComplete={refetch} />
-          </Container>
-        )}
         {showCreateNew ? (
           <View className="bg-background flex-1 items-center justify-center space-y-4">
             <Heading>Create your first card</Heading>
-            <NewCardButton size="default" onComplete={refetch} />
-          </View>
-        ) : isPending ? (
-          <View className="flex-1 items-center justify-center">
-            <Loader size="lg" />
+            <NewCardButton
+              size="default"
+              isPending={isPending}
+              onComplete={refetch}
+            />
           </View>
         ) : (
           <>
+            <Container className="flex-row items-center justify-between pt-4">
+              <Heading>My Cards</Heading>
+              <NewCardButton onComplete={refetch} />
+            </Container>
             <CardList cards={data} />
             <CardButtons />
             <CardTransactions />
@@ -94,10 +99,10 @@ interface CardListProps {
   >
 }
 
+const parallaxScrollingScale = 0.85
 function CardList({ cards }: CardListProps) {
   const width = Dimensions.get("window").width
   const height = width / (3.37 / 2.125)
-  const parallaxScrollingScale = 0.85
   const listRef = useRef<ICarouselInstance>(null!)
   const { setActiveCard } = useCardsContext()
 
@@ -154,13 +159,6 @@ function CardButtons() {
             <Icon name="Eye" variant="secondary" size={24} />
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="icon"
-          onPress={() => detailsModalRef.current.present()}
-        >
-          <Icon name="Eye" variant="outline" size={24} />
-        </Button>
       </View>
     </Container>
   )
@@ -572,6 +570,40 @@ function WithdrawButton(props: ButtonProps) {
         </BottomSheetView>
       </BottomSheetModal>
     </>
+  )
+}
+
+function CardScreenSkeleton() {
+  const insets = useSafeAreaInsets()
+  const width = Dimensions.get("window").width
+  const height = (width / (3.37 / 2.125)) * parallaxScrollingScale
+
+  // <CardList cards={data} />
+  // <CardButtons />
+  return (
+    <Skeleton.Group show>
+      <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
+        <Container className="flex-row items-center justify-between pt-4">
+          <Heading>My Cards</Heading>
+          <Skeleton width={135} />
+        </Container>
+        <Container className="pt-4">
+          <Skeleton height={height}>
+            <Text className="">loading</Text>
+          </Skeleton>
+        </Container>
+        <View className="pt-4" />
+        <Container className="pb-4">
+          <Label className="mb-1">Card Actions</Label>
+          <Skeleton height={48}>
+            <View className="flex-1" />
+          </Skeleton>
+        </Container>
+        <Container className="bg-background border-foreground/30 flex-1 border-t">
+          <TransactionSkeleton />
+        </Container>
+      </View>
+    </Skeleton.Group>
   )
 }
 
