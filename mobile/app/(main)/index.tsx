@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Dimensions, View, ViewProps } from "react-native"
 import QRCode from "react-native-qrcode-svg"
@@ -18,31 +18,39 @@ import { Currency } from "@/components/currency"
 import { Icon } from "@/components/icon"
 import { Input } from "@/components/input"
 import { Label, Subheading, Text } from "@/components/text"
-import { Transaction } from "@/components/transactions"
+import { Transaction, useTransactions } from "@/components/transactions"
 import { Container } from "@/components/view"
 import { TransactionBlock, useSui, useSuiClientQuery } from "@/hooks/use-sui"
-import { qc } from "@/lib/query"
 import { shortenAddress } from "@/lib/utils"
 
 export default function IndexScreen() {
   const { account } = useSui()
   const insets = useSafeAreaInsets()
   const balance = useSuiClientQuery("getBalance", { owner: account.address })
+  const transactions = useTransactions(account.address)
   const amount = Number(balance.data?.totalBalance ?? 0)
+
+  async function onComplete() {
+    await Promise.all([balance.refetch(), transactions.refetch()])
+  }
 
   return (
     <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
       <Container>
         <View className="items-center justify-center pb-12 pt-36">
           <Subheading className="mb-3">Total Balance</Subheading>
-          <Currency amount={amount / 1e9} className="font-uiBold text-5xl" />
+          <Currency
+            amount={amount / 1e9}
+            className="font-uiBold text-5xl"
+            isPending={balance.isPending}
+          />
         </View>
       </Container>
       <Container>
         <Label className="mb-1">Wallet Actions</Label>
         <View className="flex-row justify-between gap-4">
-          <DepositButton />
-          <SendButton />
+          <DepositButton isPending={balance.isPending} />
+          <SendButton isPending={balance.isPending} onComplete={onComplete} />
         </View>
       </Container>
       <Transaction label="Activity" address={account.address} />
@@ -50,7 +58,12 @@ export default function IndexScreen() {
   )
 }
 
-function DepositButton(props: ViewProps) {
+type ButtonProps = ViewProps & {
+  isPending: boolean
+  onComplete?: () => void
+}
+
+function DepositButton({ isPending, ...props }: ButtonProps) {
   const { account } = useSui()
   const width = Dimensions.get("window").width
   const modalRef = useRef<BottomSheetModalMethods>(null!)
@@ -63,6 +76,7 @@ function DepositButton(props: ViewProps) {
       <Button
         variant="default"
         className="flex-1"
+        isPending={isPending}
         onPress={() => modalRef.current.present()}
       >
         <Icon name="ArrowDownLeft" variant="default" />
@@ -102,14 +116,18 @@ function DepositButton(props: ViewProps) {
 
 const sendValidator = z.object({
   amount: z.coerce.number().positive(),
-  address: z.string(),
+  address: z.string().length(66, "Must be a valid SUI address"),
 })
 
-function SendButton(props: ViewProps) {
+function SendButton({ isPending, onComplete, ...props }: ButtonProps) {
   const { executeTransactionBlock } = useSui()
+  const [isLoading, setIsLoading] = useState(false)
+  const dimensions = Dimensions.get("window")
   const modalRef = useRef<BottomSheetModalMethods>(null!)
   const form = useForm<z.infer<typeof sendValidator>>({
     resolver: zodResolver(sendValidator),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       amount: Number((Math.random() * 10).toFixed(5)),
       address:
@@ -127,21 +145,32 @@ function SendButton(props: ViewProps) {
 
       txb.transferObjects([coin], txb.pure(args.address))
 
+      setIsLoading(true)
       await executeTransactionBlock({ transactionBlock: txb })
-      await qc.invalidateQueries()
+      await onComplete?.()
       modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <View className="flex-1" {...props}>
-      <Button variant="outline" onPress={() => modalRef.current.present()}>
+      <Button
+        variant="outline"
+        isPending={isPending}
+        onPress={() => modalRef.current.present()}
+      >
         <Icon name="ArrowUpRight" variant="outline" />
         <Text>Send</Text>
       </Button>
-      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+      <BottomSheetModal
+        ref={modalRef}
+        isLoading={isLoading}
+        snapPoints={["25%", dimensions.height / 2]}
+      >
         <BottomSheetView className="flex-1 px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Send Assets</Subheading>
@@ -159,7 +188,7 @@ function SendButton(props: ViewProps) {
               <Controller
                 name="amount"
                 control={form.control}
-                render={({ field: { onChange, onBlur, value }, formState }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <View>
                     <Label className="mb-1">Amount</Label>
                     <Input
@@ -168,9 +197,9 @@ function SendButton(props: ViewProps) {
                       onChangeText={onChange}
                       defaultValue={value.toString()}
                     />
-                    {formState.errors.amount && (
+                    {form.formState.errors.amount?.message && (
                       <Text className="text-red-500">
-                        {formState.errors.amount.message}
+                        {form.formState.errors.amount.message}
                       </Text>
                     )}
                   </View>
@@ -181,7 +210,7 @@ function SendButton(props: ViewProps) {
               <Controller
                 name="address"
                 control={form.control}
-                render={({ field: { onChange, onBlur, value }, formState }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <View>
                     <Label className="mb-1">Recipient</Label>
                     <Input
@@ -191,9 +220,9 @@ function SendButton(props: ViewProps) {
                       defaultValue={value}
                       multiline
                     />
-                    {formState.errors.address && (
+                    {form.formState.errors.address?.message && (
                       <Text className="text-red-500">
-                        {formState.errors.address.message}
+                        {form.formState.errors.address.message}
                       </Text>
                     )}
                   </View>

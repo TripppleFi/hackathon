@@ -1,6 +1,7 @@
 import React from "react"
-import { Pressable } from "react-native"
+import { Pressable, View } from "react-native"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Skeleton } from "moti/skeleton"
 
 import { TextClassProvider } from "@/components/text"
 import { type PressableRef } from "@/components/types"
@@ -51,10 +52,23 @@ const buttonTextVariants = cva("font-uiBold uppercase", {
 })
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
-  VariantProps<typeof buttonVariants>
+  VariantProps<typeof buttonVariants> & { isPending?: boolean }
 
 const Button = React.forwardRef<PressableRef, ButtonProps>(
-  ({ className, variant = "default", size, ...props }, ref) => {
+  ({ className, variant = "default", size, isPending, ...props }, ref) => {
+    if (isPending) {
+      return (
+        <Skeleton show>
+          <View
+            className={cn(
+              buttonVariants({ variant, size, className }),
+              "ml-0 rounded-full bg-transparent px-0",
+            )}
+          />
+        </Skeleton>
+      )
+    }
+
     return (
       <TextClassProvider value={buttonTextVariants({ variant, size })}>
         <Pressable

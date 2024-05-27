@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from "react"
+import { forwardRef, useMemo, type PropsWithChildren } from "react"
 import { View } from "react-native"
 import {
   default as Animated,
@@ -15,11 +15,15 @@ import {
   type BottomSheetProps as BottomSheetPropsCustom,
 } from "@gorhom/bottom-sheet"
 
+import { Loader } from "@/components/loader"
+
 type BottomSheetProps = BottomSheetPropsCustom & { className?: string }
-type BottomSheetModalProps = BottomSheetModalPropsCustom & {
-  className?: string
-  // enableDismissFromLastSnapPoint?: boolean
-}
+type BottomSheetModalProps = PropsWithChildren<
+  Omit<BottomSheetModalPropsCustom, "children"> & {
+    className?: string
+    // enableDismissFromLastSnapPoint?: boolean
+  }
+>
 
 const BottomSheet = forwardRef<
   React.ElementRef<typeof BottomSheetCustom>,
@@ -30,8 +34,8 @@ const BottomSheet = forwardRef<
 
 const BottomSheetModal = forwardRef<
   React.ElementRef<typeof BottomSheetModalCustom>,
-  BottomSheetModalProps
->((props, ref) => {
+  BottomSheetModalProps & { isLoading?: boolean }
+>(({ isLoading, ...props }, ref) => {
   const { index = 1, snapPoints = ["25%", "75%"] } = props
   return (
     <BottomSheetModalCustom
@@ -39,10 +43,22 @@ const BottomSheetModal = forwardRef<
       ref={ref}
       backgroundComponent={Background}
       backdropComponent={Backdrop}
+      enablePanDownToClose={!isLoading}
+      enableHandlePanningGesture={!isLoading}
+      enableContentPanningGesture={!isLoading}
       handleComponent={Handle}
       snapPoints={snapPoints}
       index={index}
-    />
+    >
+      {props.children}
+      {isLoading && (
+        <View className="absolute left-0 top-0 flex h-full w-full items-center justify-center bg-neutral-950/70">
+          <View>
+            <Loader size="lg" />
+          </View>
+        </View>
+      )}
+    </BottomSheetModalCustom>
   )
 })
 
