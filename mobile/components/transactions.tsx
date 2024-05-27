@@ -25,74 +25,60 @@ export function Transaction({ address, label }: TransactionProps) {
     <Container className="bg-background border-foreground/30 mt-8 flex-1 border-t">
       <Subheading className="pt-4">{label}</Subheading>
       {isPending && <TransactionSkeleton />}
-      {!isPending && (
-        <SectionList
-          sections={data}
-          keyExtractor={item => String(item?.digest)}
-          renderSectionHeader={({ section }) => (
-            <Label className="pb-2.5 pt-4">{section.key}</Label>
-          )}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View className="flex-row items-center gap-x-4 py-2.5">
-              <View className="bg-secondary rounded-full p-2">
-                <Icon
-                  name={
-                    item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
-                  }
-                  variant="secondary"
-                  size={24}
-                />
-              </View>
-              <View className="flex-1">
-                <Text>{shortenAddress(item?.account ?? "")}</Text>
-                <Text className="text-muted-foreground text-xs">
-                  {item?.createdAt}
-                </Text>
-              </View>
-              <View>
-                <Currency
-                  className={cn("font-uiMedium text-lg")}
-                  amount={(item?.amount ?? 0) / 1e9}
-                />
-              </View>
+      {!isPending &&
+        (data.length === 0 ? (
+          <View className="border-b-muted-foreground flex-1 items-center justify-center border-b">
+            <View className="items-center gap-3">
+              <Icon
+                name="Clock10"
+                variant="secondary"
+                className="text-muted-foreground text-3xl"
+              />
+              <Text className="text-muted-foreground">
+                No {label.toLocaleLowerCase()} yet
+              </Text>
             </View>
-          )}
-        />
-      )}
+          </View>
+        ) : (
+          <SectionList
+            sections={data}
+            keyExtractor={item => String(item?.digest)}
+            renderSectionHeader={({ section }) => (
+              <Label className="pb-2.5 pt-4">{section.key}</Label>
+            )}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View className="flex-row items-center gap-x-4 py-2.5">
+                <View className="bg-secondary rounded-full p-2">
+                  <Icon
+                    name={
+                      item?.action === "send" ? "ArrowUpRight" : "ArrowDownLeft"
+                    }
+                    variant="secondary"
+                    size={24}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text> {shortenAddress(item?.account ?? "")}</Text>
+                  <Text className="text-muted-foreground text-xs">
+                    {item?.createdAt}
+                  </Text>
+                </View>
+                <View>
+                  <Currency
+                    className={cn("font-uiMedium text-lg")}
+                    amount={(item?.amount ?? 0) / 1e9}
+                  />
+                </View>
+              </View>
+            )}
+          />
+        ))}
     </Container>
   )
 }
 
 export function useTransactions(address?: string) {
-  const validateResponse = (response: SuiTransactionBlockResponse) => {
-    const result = activityParser.safeParse(response)
-    if (result.error) return null
-
-    const meIndex = result.data.balanceChanges.findIndex(
-      change => change.owner.AddressOwner === address,
-    )
-
-    if (meIndex === -1) return null
-
-    const meChange = result.data.balanceChanges[meIndex]
-    const sender = meChange.amount < 0
-    const otherIndex = result.data.balanceChanges.findIndex(change => {
-      return sender ? change.owner.AddressOwner !== address : change.amount < 0
-    })
-
-    if (otherIndex === -1) return null
-
-    return {
-      sender,
-      digest: result.data.digest,
-      action: sender ? "send" : "receive",
-      amount: result.data.balanceChanges[meIndex].amount,
-      account: result.data.balanceChanges[otherIndex].owner.AddressOwner,
-      createdAt: date(Number(result.data.timestampMs)).fromNow(),
-    }
-  }
-
   return useSuiClientQueries({
     queries: [
       {
@@ -107,33 +93,14 @@ export function useTransactions(address?: string) {
       },
     ],
     combine: res => ({
-      data: r
-        .chain(
-          (piped: SuiTransactionBlockResponse[]) =>
-            r.sort(piped, sub => Number(sub.timestampMs), true),
-          piped =>
-            chunk(piped, sub =>
-              date(Number(sub.timestampMs))
-                .startOf("date")
-                .format("MMM D, YYYY"),
-            ),
-          piped =>
-            r.listify(piped, (key, data) => ({
-              key,
-              data: data?.map(validateResponse),
-            })),
-        )(
-          r.unique(
-            res.flatMap(res => res.data?.data ?? []),
-            i => i.digest,
-          ),
-        )
-        .filter(({ data }) => data.filter(Boolean).length > 0),
-
       isSuccess: res.every(res => res.isSuccess),
       isPending: res.some(res => res.isPending),
       isError: res.some(res => res.isError),
       refetch: () => Promise.all(res.map(res => res.refetch())),
+      data: parseTransactionBlocks(
+        res.flatMap(res => res.data?.data ?? []),
+        String(address),
+      ),
     }),
   })
 }
@@ -168,4 +135,54 @@ function TransactionSkeleton() {
       </View>
     </Skeleton.Group>
   )
+}
+
+function parseTransactionBlocks(
+  blocks: SuiTransactionBlockResponse[],
+  address: string,
+) {
+  const parsed = r.chain(
+    (piped: SuiTransactionBlockResponse[]) => r.unique(piped, i => i.digest),
+    piped => piped.filter(pipe => pipe.effects?.status.status === "success"),
+    piped => r.sort(piped, sub => Number(sub.timestampMs), true),
+    piped =>
+      chunk(piped, sub =>
+        date(Number(sub.timestampMs)).startOf("date").format("MMM D, YYYY"),
+      ),
+  )(blocks)
+
+  return r
+    .listify(parsed, (key, data) => ({
+      key,
+      data: data.map(value => validateResponse(value, address)),
+    }))
+    .filter(({ data }) => data.filter(Boolean).length > 0)
+}
+
+function validateResponse(block: SuiTransactionBlockResponse, address: string) {
+  const result = activityParser.safeParse(block)
+  if (result.error) return null
+
+  const meIndex = result.data.balanceChanges.findIndex(
+    change => change.owner.AddressOwner === address,
+  )
+
+  if (meIndex === -1) return null
+
+  const meChange = result.data.balanceChanges[meIndex]
+  const sender = meChange.amount < 0
+  const otherIndex = result.data.balanceChanges.findIndex(change => {
+    return sender ? change.owner.AddressOwner !== address : change.amount < 0
+  })
+
+  if (otherIndex === -1) return null
+
+  return {
+    sender,
+    digest: result.data.digest,
+    action: sender ? "send" : "receive",
+    amount: result.data.balanceChanges[meIndex].amount,
+    account: result.data.balanceChanges[otherIndex].owner.AddressOwner,
+    createdAt: date(Number(result.data.timestampMs)).fromNow(),
+  }
 }

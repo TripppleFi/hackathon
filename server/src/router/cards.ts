@@ -4,8 +4,6 @@ import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519"
 import { TransactionBlock } from "@mysten/sui.js/transactions"
 import BigNumber from "bignumber.js"
 import { eq } from "drizzle-orm"
-import * as r from "radash"
-import { z } from "zod"
 
 import { cards } from "../db/schema"
 import { getSuiClient } from "../lib/sui"
@@ -13,7 +11,10 @@ import { authPlugin } from "../plugins/auth"
 import { setupPlugin } from "../plugins/setup"
 
 const newValidator = t.Object({ label: t.String() })
-const fundValidator = t.Object({ digest: t.String() })
+const fundValidator = t.Object({
+  address: t.String({ minLength: 66, maxLength: 66 }),
+})
+
 const withdrawValidator = t.Object({
   id: t.String(),
   amount: t.Number({ minimum: 0 }),
@@ -47,36 +48,21 @@ export const cardRoutes = new Elysia({ name: "@router/cards", prefix: "cards" })
         "/fund",
         async ({ body, db, session, httpErrors }) => {
           const suiClient = getSuiClient()
-          const tx = await suiClient.getTransactionBlock({
-            digest: body.digest,
-            options: { showBalanceChanges: true, showInput: true },
-          })
-
-          const response = activityParser.safeParse(tx)
-          if (response.success === false) {
-            throw httpErrors.BadRequest()
-          }
-
-          const sortedChanges = r.sort(
-            response.data.balanceChanges,
-            change => change.amount,
-          )
-
-          const [[sender], [receiver]] = r.fork(sortedChanges, change => {
-            return change.owner.AddressOwner === session.user.address
-          })
-
           const card = await db.query.cards.findFirst({
             where(fields, operators) {
-              return operators.eq(fields.address, receiver.owner.AddressOwner)
+              return operators.eq(fields.address, body.address)
             },
           })
 
-          if (!card) {
-            throw httpErrors.BadRequest()
+          if (!card || card.userId !== session.user.id) {
+            throw httpErrors.Forbidden()
           }
 
-          if (card.status === "initiated") {
+          const balance = await suiClient.getBalance({
+            owner: body.address,
+          })
+
+          if (Number(balance.totalBalance) > 0 && card.status === "inactive") {
             await db
               .update(cards)
               .set({ status: "pending" })
@@ -131,15 +117,3 @@ export const cardRoutes = new Elysia({ name: "@router/cards", prefix: "cards" })
         { body: withdrawValidator },
       ),
   )
-
-export const balanceChange = z.object({
-  owner: z.object({ AddressOwner: z.string() }),
-  coinType: z.literal("0x2::sui::SUI"),
-  amount: z.coerce.number(),
-})
-
-export const activityParser = z.object({
-  digest: z.string(),
-  balanceChanges: z.tuple([balanceChange, balanceChange]),
-  timestampMs: z.coerce.number(),
-})

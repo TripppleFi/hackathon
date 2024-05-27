@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Dimensions, View, ViewProps } from "react-native"
 import {
@@ -17,7 +24,7 @@ import {
   BottomSheetView,
   type BottomSheetModalMethods,
 } from "@/components/bottom-sheet"
-import { Button, ButtonProps } from "@/components/button"
+import { Button, ButtonProps as ButtonPropsCustom } from "@/components/button"
 import { Currency } from "@/components/currency"
 import { BrandIcon, Icon } from "@/components/icon"
 import { Input } from "@/components/input"
@@ -29,11 +36,14 @@ import {
   Text,
   TextClassProvider,
 } from "@/components/text"
-import { Transaction } from "@/components/transactions"
+import { Transaction, useTransactions } from "@/components/transactions"
 import { Container } from "@/components/view"
 import { useApi, type ApiType } from "@/hooks/use-api"
 import { TransactionBlock, useSui, useSuiClientQuery } from "@/hooks/use-sui"
-import { qc } from "@/lib/query"
+
+type ButtonProps = ButtonPropsCustom & {
+  onComplete: () => void
+}
 
 const CardsContext = createContext<ReturnType<typeof createCardContextProps>>(
   null!,
@@ -41,22 +51,25 @@ const CardsContext = createContext<ReturnType<typeof createCardContextProps>>(
 
 export default function CardsScreen() {
   const insets = useSafeAreaInsets()
-  const { isPending, data = [], isError } = useCards()
+  const { isPending, data = [], isError, refetch } = useCards()
   const showCreateNew = !isError && !isPending && data.length === 0
 
   return (
     <CardsContext.Provider value={createCardContextProps(data)}>
-      <View className="bg-muted flex-1" style={{ paddingTop: insets.top }}>
+      <View
+        className="bg-muted flex-1"
+        style={{ paddingTop: showCreateNew ? 0 : insets.top }}
+      >
         {!showCreateNew && (
           <Container className="flex-row items-center justify-between pt-4">
             <Heading>My Cards</Heading>
-            <NewCardButton />
+            <NewCardButton onComplete={refetch} />
           </Container>
         )}
         {showCreateNew ? (
-          <View className="flex-1 items-center justify-center space-y-4">
+          <View className="bg-background flex-1 items-center justify-center space-y-4">
             <Heading>Create your first card</Heading>
-            <NewCardButton size="default" />
+            <NewCardButton size="default" onComplete={refetch} />
           </View>
         ) : isPending ? (
           <View className="flex-1 items-center justify-center">
@@ -110,9 +123,19 @@ function CardList({ cards }: CardListProps) {
 
 function CardButtons() {
   const { activeCard, detailsModalRef } = useCardsContext()
-  const handleShowCardDetails = () => {
-    detailsModalRef.current.present()
-  }
+  const cards = useCards()
+  const transactions = useTransactions(activeCard?.address)
+  const balance = useSuiClientQuery("getBalance", {
+    owner: String(activeCard?.address),
+  })
+
+  const refreshCardDetails = useCallback(async () => {
+    await Promise.all([
+      cards.refetch(),
+      balance.refetch(),
+      transactions.refetch(),
+    ])
+  }, [cards, balance, transactions])
 
   if (!activeCard) return null
 
@@ -120,17 +143,24 @@ function CardButtons() {
     <Container>
       <Label className="mb-1">Card Actions</Label>
       <View className="flex-row justify-between gap-4">
-        <FundButton className="flex-1" />
-        <WithdrawButton className="flex-1" />
-        {activeCard.status === "ready" && (
+        <FundButton className="flex-1" onComplete={refreshCardDetails} />
+        <WithdrawButton className="flex-1" onComplete={refreshCardDetails} />
+        {activeCard.status === "active" && (
           <Button
             variant="secondary"
             size="icon"
-            onPress={handleShowCardDetails}
+            onPress={() => detailsModalRef.current.present()}
           >
             <Icon name="Eye" variant="secondary" size={24} />
           </Button>
         )}
+        <Button
+          variant="outline"
+          size="icon"
+          onPress={() => detailsModalRef.current.present()}
+        >
+          <Icon name="Eye" variant="outline" size={24} />
+        </Button>
       </View>
     </Container>
   )
@@ -162,7 +192,7 @@ function CardDetails() {
         <View className="h-56 pb-4">
           <Card card={activeCard} />
         </View>
-        {activeCard.status === "ready" && (
+        {activeCard.status === "active" && (
           <View>
             <CardLine label="Card name" value={activeCard.nameOnCard} />
             <CardLine label="Card number" value={activeCard.accountNumber} />
@@ -193,13 +223,11 @@ function Card({ card }: CardProps) {
               <BrandIcon className="text-background" name="visa" size={36} />
               <Text className="font-uiBold text-background">{card.label}</Text>
             </View>
-            {card.status !== "ready" && (
-              <View>
-                <View className="border-background rounded-sm border px-1">
-                  <Label className="text-background">{card.status}</Label>
-                </View>
+            <View>
+              <View className="border-background rounded-sm border px-1">
+                <Label className="text-background">{card.status}</Label>
               </View>
-            )}
+            </View>
           </View>
           <View>
             <Label className="text-background">Total Balance</Label>
@@ -209,21 +237,21 @@ function Card({ card }: CardProps) {
             />
           </View>
           <View className="flex-row justify-between">
-            {card.status === "ready" && (
+            {card.status === "active" && (
               <View>
                 <Label className="text-background">PAN</Label>
                 <Text className="text-background">**** 9233</Text>
               </View>
             )}
-            {card.status === "ready" && (
+            {card.status === "active" && (
               <View className="items-end">
                 <Label className="text-background">Valid Thru</Label>
                 <Text className="text-background">05/28</Text>
               </View>
             )}
           </View>
-          {card.status === "initiated" && (
-            <Text className="text-red-300">
+          {card.status === "inactive" && (
+            <Text className="text-red-500">
               Please fund your card to get started
             </Text>
           )}
@@ -259,9 +287,12 @@ const newCardValidator = z.object({
 
 function NewCardButton({ size = "sm", ...props }: ButtonProps) {
   const { api } = useApi()
+  const [isLoading, setIsLoading] = useState(false)
   const modalRef = useRef<BottomSheetModalMethods>(null!)
   const form = useForm<z.infer<typeof newCardValidator>>({
     resolver: zodResolver(newCardValidator),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: { label: "Gaming" },
   })
 
@@ -273,11 +304,14 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
 
   const handleSubmit = async (args: z.infer<typeof newCardValidator>) => {
     try {
+      setIsLoading(true)
       await mutation.mutateAsync(args)
-      await qc.invalidateQueries()
+      await props.onComplete()
       modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -293,7 +327,7 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
         <Text>New Card</Text>
       </Button>
 
-      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+      <BottomSheetModal ref={modalRef} isLoading={isLoading}>
         <BottomSheetView className="flex-1 px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Create New Card</Subheading>
@@ -343,51 +377,58 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
 }
 
 const fundCardValidator = z.object({
-  amount: z.coerce.number(),
+  amount: z.coerce.number().positive(),
 })
 
 function FundButton(props: ButtonProps) {
   const { api } = useApi()
   const { activeCard } = useCardsContext()
   const { executeTransactionBlock } = useSui()
+  const [isLoading, setIsLoading] = useState(false)
   const modalRef = useRef<BottomSheetModalMethods>(null!)
   const form = useForm<z.infer<typeof fundCardValidator>>({
     resolver: zodResolver(fundCardValidator),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: { amount: 10 },
   })
 
   const mutation = useMutation({
     async mutationFn(args: z.infer<typeof fundCardValidator>) {
+      if (!activeCard) return
       const txb = new TransactionBlock()
       const [coin] = txb.splitCoins(txb.gas, [
         txb.pure(new BigNumber(args.amount).multipliedBy(1e9).toNumber()),
       ])
 
-      txb.transferObjects([coin], txb.pure(activeCard?.address))
+      txb.transferObjects([coin], txb.pure(activeCard.address))
 
-      const result = await executeTransactionBlock({ transactionBlock: txb })
-      return api.cards.fund.post({ digest: result.digest })
+      await executeTransactionBlock({ transactionBlock: txb })
+      return api.cards.fund.post({ address: activeCard.address })
     },
   })
 
   const handleSubmit = async (args: z.infer<typeof fundCardValidator>) => {
     try {
+      setIsLoading(true)
       await mutation.mutateAsync(args)
-      await qc.invalidateQueries()
+      await props.onComplete()
       modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <>
       <Button {...props} onPress={() => modalRef.current.present()}>
-        <Icon name="ArrowDownLeft" variant="default" />
+        <Icon name="ArrowDownLeft" variant={props.variant ?? "default"} />
         <Text>Fund Card</Text>
       </Button>
 
-      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+      <BottomSheetModal ref={modalRef} isLoading={isLoading}>
         <BottomSheetView className="flex-1 px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Fund Card</Subheading>
@@ -409,6 +450,7 @@ function FundButton(props: ButtonProps) {
                   <View>
                     <Label className="mb-1">Amount</Label>
                     <Input
+                      keyboardType="numeric"
                       onBlur={onBlur}
                       onChangeText={onChange}
                       defaultValue={String(value)}
@@ -437,15 +479,17 @@ function FundButton(props: ButtonProps) {
 }
 
 const withdrawCardValidator = z.object({
-  amount: z.coerce.number(),
+  amount: z.coerce.number().positive(),
 })
 
 function WithdrawButton(props: ButtonProps) {
   const { api } = useApi()
   const { activeCard } = useCardsContext()
-  const { executeTransactionBlock } = useSui()
+  const [isLoading, setIsLoading] = useState(false)
   const modalRef = useRef<BottomSheetModalMethods>(null!)
   const form = useForm<z.infer<typeof withdrawCardValidator>>({
+    mode: "onChange",
+    reValidateMode: "onChange",
     resolver: zodResolver(withdrawCardValidator),
     defaultValues: { amount: 10 },
   })
@@ -458,11 +502,14 @@ function WithdrawButton(props: ButtonProps) {
 
   const handleSubmit = async (args: z.infer<typeof withdrawCardValidator>) => {
     try {
+      setIsLoading(true)
       await mutation.mutateAsync(args)
-      await qc.invalidateQueries()
+      await props.onComplete()
       modalRef.current.forceClose()
     } catch (error) {
       console.log("error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -471,14 +518,14 @@ function WithdrawButton(props: ButtonProps) {
       <Button
         {...props}
         variant="outline"
-        disabled={activeCard?.status === "initiated"}
+        disabled={activeCard?.status === "inactive"}
         onPress={() => modalRef.current.present()}
       >
         <Icon name="ArrowUpRight" variant="outline" />
         <Text>Withdraw</Text>
       </Button>
 
-      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+      <BottomSheetModal ref={modalRef} isLoading={isLoading}>
         <BottomSheetView className="flex-1 px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Withdraw funds</Subheading>
@@ -500,6 +547,7 @@ function WithdrawButton(props: ButtonProps) {
                   <View>
                     <Label className="mb-1">Amount</Label>
                     <Input
+                      keyboardType="numeric"
                       onBlur={onBlur}
                       onChangeText={onChange}
                       defaultValue={String(value)}

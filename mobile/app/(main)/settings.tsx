@@ -1,20 +1,25 @@
 import { View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
 
 import { Button } from "@/components/button"
 import { Text } from "@/components/text"
-import { useLogin, useSui } from "@/hooks/use-sui"
-import { qc } from "@/lib/query"
+import { useTransactions } from "@/components/transactions"
+import { useLogin, useSui, useSuiClientQuery } from "@/hooks/use-sui"
 
 export default function SettingsScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+
   const { logout } = useLogin()
-  const { requestAirdrop } = useSui()
+  const { account, requestAirdrop } = useSui()
+  const balance = useSuiClientQuery("getBalance", { owner: account.address })
+  const transactions = useTransactions(account.address)
 
   async function handleAirdropRequest() {
     try {
       await requestAirdrop()
-      await qc.invalidateQueries()
+      await Promise.all([balance.refetch(), transactions.refetch()])
     } catch (error) {
       console.log("error:", error)
     }
@@ -26,13 +31,16 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View className="flex-1 items-end justify-end gap-8 p-8">
-      <View className="flex-row gap-x-8">
+    <View
+      className="flex-1 items-end justify-end gap-8 p-8"
+      style={{ paddingTop: insets.top }}
+    >
+      <View className="gap-y-8">
+        <Button variant="outline" onPress={handleLogout}>
+          <Text>Logout</Text>
+        </Button>
         <Button variant="outline" onPress={handleAirdropRequest}>
           <Text>Request airdrop</Text>
-        </Button>
-        <Button onPress={handleLogout}>
-          <Text>Logout</Text>
         </Button>
       </View>
     </View>

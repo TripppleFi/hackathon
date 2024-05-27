@@ -43,7 +43,7 @@ export const cards = createTable("cards", {
   accountNumber: text("account_number"),
   expiry: text("expiry"),
   securityCode: text("security_code"),
-  status: text("status", { enum: ["initiated", "pending", "ready"] })
+  status: text("status", { enum: ["inactive", "pending", "active"] })
     .notNull()
-    .default("initiated"),
+    .default("inactive"),
 })

@@ -1,5 +1,5 @@
 import { forwardRef, useMemo, type PropsWithChildren } from "react"
-import { View } from "react-native"
+import { Dimensions, View } from "react-native"
 import {
   default as Animated,
   Extrapolation,
@@ -36,7 +36,8 @@ const BottomSheetModal = forwardRef<
   React.ElementRef<typeof BottomSheetModalCustom>,
   BottomSheetModalProps & { isLoading?: boolean }
 >(({ isLoading, ...props }, ref) => {
-  const { index = 1, snapPoints = ["25%", "75%"] } = props
+  const dimensions = Dimensions.get("window")
+  const { index = 1, snapPoints = ["25%", dimensions.height / 2] } = props
   return (
     <BottomSheetModalCustom
       {...props}

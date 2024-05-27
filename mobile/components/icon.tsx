@@ -1,5 +1,5 @@
 import React from "react"
-import { StyleSheet, type ColorValue, type ViewProps } from "react-native"
+import { StyleSheet, type TextProps } from "react-native"
 import { Path, default as Svg, type SvgProps } from "react-native-svg"
 import { faCcVisa } from "@fortawesome/free-brands-svg-icons"
 import {
@@ -7,14 +7,15 @@ import {
   type FontAwesomeIconStyle,
 } from "@fortawesome/react-native-fontawesome"
 import { icons } from "lucide-react-native"
+import { useTailwind } from "nativewind"
 
-import { ButtonProps } from "@/components/button"
+import { ButtonProps, buttonTextVariants } from "@/components/button"
 
 export interface IconProps {
   name: keyof typeof icons
   variant?: NonNullable<ButtonProps["variant"]>
   className?: string
-  style?: ViewProps["style"]
+  style?: TextProps["style"]
   size?: number
   fill?: string
   color?: string
@@ -24,24 +25,23 @@ export function Icon({
   name,
   variant = "default",
   fill = "currentColor",
-  color,
   size = 16,
   style = {},
 }: IconProps) {
   const LucideIcon = icons[name]
-  const colors: Record<typeof variant, ColorValue> = {
-    default: "black",
-    outline: "white",
-    secondary: "gray",
-    ghost: "black",
-  }
+  const [inlineStyles] = useTailwind({
+    className: buttonTextVariants({ variant }),
+    inlineStyles: style,
+    flatten: true,
+  })
+
+  const styles = StyleSheet.flatten(inlineStyles)
 
   return (
     <LucideIcon
       fill={fill}
-      color={color ?? colors[variant]}
-      size={size}
-      style={style}
+      color={styles.color}
+      size={styles.fontSize ?? size}
     />
   )
 }
@@ -56,9 +56,6 @@ interface BrandIconProps {
   className?: string
   size?: number
 }
-
-// @ts-expect-error
-FontAwesomeIcon.defaultProps = undefined
 
 export function BrandIcon({ name, style = {}, size }: BrandIconProps) {
   const icon = BrandIcons[name]

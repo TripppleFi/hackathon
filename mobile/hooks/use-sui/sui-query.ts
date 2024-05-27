@@ -85,7 +85,7 @@ export function withDefaultClientOptions<T extends keyof SuiRpcMethods>(
     {
       options: {
         showBalanceChanges: true,
-        showEffects: false,
+        showEffects: true,
         showEvents: false,
       },
     },

@@ -82,7 +82,7 @@ function DepositButton({ isPending, ...props }: ButtonProps) {
         <Icon name="ArrowDownLeft" variant="default" />
         <Text>Deposit</Text>
       </Button>
-      <BottomSheetModal ref={modalRef} snapPoints={["25%", "50%"]}>
+      <BottomSheetModal ref={modalRef}>
         <BottomSheetView className="px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Deposit</Subheading>
@@ -122,7 +122,6 @@ const sendValidator = z.object({
 function SendButton({ isPending, onComplete, ...props }: ButtonProps) {
   const { executeTransactionBlock } = useSui()
   const [isLoading, setIsLoading] = useState(false)
-  const dimensions = Dimensions.get("window")
   const modalRef = useRef<BottomSheetModalMethods>(null!)
   const form = useForm<z.infer<typeof sendValidator>>({
     resolver: zodResolver(sendValidator),
@@ -131,7 +130,7 @@ function SendButton({ isPending, onComplete, ...props }: ButtonProps) {
     defaultValues: {
       amount: Number((Math.random() * 10).toFixed(5)),
       address:
-        "0xd01c593d5e35b66ba6c15cf5dbe2da581fd7e8ed5a9596f1e4f7830180b88f14",
+        "0x9913311d71b3af808e94de7ed37d5e603690fb6dd9dcab55b4df188750146b81",
     },
   })
 
@@ -166,11 +165,7 @@ function SendButton({ isPending, onComplete, ...props }: ButtonProps) {
         <Icon name="ArrowUpRight" variant="outline" />
         <Text>Send</Text>
       </Button>
-      <BottomSheetModal
-        ref={modalRef}
-        isLoading={isLoading}
-        snapPoints={["25%", dimensions.height / 2]}
-      >
+      <BottomSheetModal ref={modalRef} isLoading={isLoading}>
         <BottomSheetView className="flex-1 px-8 py-4">
           <View className="flex-row items-center justify-between pb-4">
             <Subheading>Send Assets</Subheading>
