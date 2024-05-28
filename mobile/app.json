@@ -5,12 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "com.trippple.fi",
+    "owner": "trippple",
+    "scheme": "trippple",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true
@@ -18,12 +19,21 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#000000"
+      },
+      "package": "com.trippple.app"
     },
     "plugins": ["expo-router", "expo-secure-store"],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "35a204bc-7ce0-44f1-918a-d153b7d0ecd6"
+      }
     }
   }
 }
