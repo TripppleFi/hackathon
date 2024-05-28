@@ -29,7 +29,6 @@ module.exports = {
         },
       },
       fontFamily: {
-        uiThin: "SansThin",
         uiLight: "SansLight",
         uiRegular: "SansRegular",
         uiMedium: "SansMedium",

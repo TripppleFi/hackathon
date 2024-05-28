@@ -28,7 +28,6 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SansThin: require("../assets/fonts/ClashGrotesk-Extralight.otf"),
     SansLight: require("../assets/fonts/ClashGrotesk-Light.otf"),
     SansRegular: require("../assets/fonts/ClashGrotesk-Regular.otf"),
     SansMedium: require("../assets/fonts/ClashGrotesk-Medium.otf"),
