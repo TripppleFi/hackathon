@@ -17,11 +17,12 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.trippple.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
-      },
-      "package": "com.trippple.app"
+      }
     },
     "plugins": ["expo-router", "expo-secure-store"],
     "experiments": {
