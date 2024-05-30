@@ -31,7 +31,7 @@ export default function IndexScreen() {
   const amount = Number(balance.data?.totalBalance ?? 0)
 
   async function onComplete() {
-    await Promise.all([balance.refetch(), transactions.refetch()])
+    await Promise.allSettled([balance.refetch(), transactions.refetch()])
   }
 
   return (
@@ -53,7 +53,13 @@ export default function IndexScreen() {
           <SendButton isPending={balance.isPending} onComplete={onComplete} />
         </View>
       </Container>
-      <Transaction label="Activity" address={account.address} />
+      <Transaction
+        label="Activity"
+        address={account.address}
+        onRefetch={async () => {
+          await balance.refetch()
+        }}
+      />
     </View>
   )
 }

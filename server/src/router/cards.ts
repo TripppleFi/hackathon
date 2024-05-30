@@ -65,7 +65,10 @@ export const cardRoutes = new Elysia({ name: "@router/cards", prefix: "cards" })
           if (Number(balance.totalBalance) > 0 && card.status === "inactive") {
             await db
               .update(cards)
-              .set({ status: "pending" })
+              .set({
+                status: "active",
+                // nameOnCard: `${session.user.address.slice(0, 6)} ${session.user.address.slice(-8)}`,
+              })
               .where(eq(cards.id, card.id))
           }
 

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { SectionList, View } from "react-native"
 import { type SuiTransactionBlockResponse } from "@mysten/sui.js/client"
 import { Skeleton } from "moti/skeleton"
@@ -13,13 +14,28 @@ import { date } from "@/lib/date"
 import { activityParser } from "@/lib/parsers"
 import { cn, idFactory, shortenAddress } from "@/lib/utils"
 
+import { Button } from "./button"
+
 interface TransactionProps {
   address?: string
   label: string
+  onRefetch: () => Promise<void> | void
 }
 
-export function Transaction({ address, label }: TransactionProps) {
-  const { data, isPending } = useTransactions(address)
+export function Transaction({ address, label, onRefetch }: TransactionProps) {
+  const [refreshing, setRefreshing] = useState(false)
+  const { data, isPending, refetch } = useTransactions(address)
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true)
+      await Promise.allSettled([refetch(), onRefetch()])
+    } catch (error) {
+      console.log("error:", error)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   return (
     <Container className="bg-background border-foreground/30 mt-8 flex-1 border-t">
@@ -36,6 +52,9 @@ export function Transaction({ address, label }: TransactionProps) {
               <Text className="text-muted-foreground">
                 No {label.toLocaleLowerCase()} yet
               </Text>
+              <Button size="sm" variant="outline" onPress={handleRefresh}>
+                <Text>Refresh</Text>
+              </Button>
             </View>
           </View>
         ) : (
@@ -43,6 +62,8 @@ export function Transaction({ address, label }: TransactionProps) {
             <Subheading className="pt-4">{label}</Subheading>
             <SectionList
               sections={data}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
               keyExtractor={item => String(item?.digest)}
               renderSectionHeader={({ section }) => (
                 <Label className="pb-2.5 pt-4">{section.key}</Label>
@@ -100,7 +121,7 @@ export function useTransactions(address?: string) {
       isSuccess: res.every(res => res.isSuccess),
       isPending: res.some(res => res.isPending),
       isError: res.some(res => res.isError),
-      refetch: () => Promise.all(res.map(res => res.refetch())),
+      refetch: () => Promise.allSettled(res.map(res => res.refetch())),
       data: parseTransactionBlocks(
         res.flatMap(res => res.data?.data ?? []),
         String(address),

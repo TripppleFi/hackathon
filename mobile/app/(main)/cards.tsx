@@ -84,7 +84,7 @@ export default function CardsScreen() {
             </Container>
             <CardList cards={data} />
             <CardButtons />
-            <CardTransactions />
+            <CardTransactions onRefetch={refetch} />
             <CardDetails />
           </>
         )}
@@ -135,7 +135,7 @@ function CardButtons() {
   })
 
   const refreshCardDetails = useCallback(async () => {
-    await Promise.all([
+    await Promise.allSettled([
       cards.refetch(),
       balance.refetch(),
       transactions.refetch(),
@@ -164,10 +164,33 @@ function CardButtons() {
   )
 }
 
-function CardTransactions() {
+function CardTransactions({ onRefetch }: { onRefetch: () => void }) {
   const { activeCard } = useCardsContext()
 
-  return <Transaction label="Transactions" address={activeCard?.address} />
+  return (
+    <Transaction
+      label="Transactions"
+      address={activeCard?.address}
+      onRefetch={onRefetch}
+    />
+  )
+}
+
+function cc_format(value: string) {
+  var v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
+  var matches = v.match(/\d{4,16}/g)
+  var match = (matches && matches[0]) || ""
+  var parts = []
+
+  for (let i = 0, len = match.length; i < len; i += 4) {
+    parts.push(match.substring(i, i + 4))
+  }
+
+  if (parts.length) {
+    return parts.join(" ")
+  } else {
+    return value
+  }
 }
 
 function CardDetails() {
@@ -193,7 +216,10 @@ function CardDetails() {
         {activeCard.status === "active" && (
           <View>
             <CardLine label="Card name" value={activeCard.nameOnCard} />
-            <CardLine label="Card number" value={activeCard.accountNumber} />
+            <CardLine
+              label="Card number"
+              value={cc_format(activeCard.accountNumber ?? "")}
+            />
             <CardLine label="Expiry date" value={activeCard.expiry} />
             <CardLine
               label="CVV (Security code)"
@@ -234,7 +260,7 @@ function Card({ card }: CardProps) {
               amount={Number(balance.data?.totalBalance ?? 0) / 1e9}
             />
           </View>
-          <View className="flex-row justify-between">
+          {/* <View className="hidden flex-row justify-between">
             {card.status === "active" && (
               <View>
                 <Label className="text-background">PAN</Label>
@@ -247,7 +273,7 @@ function Card({ card }: CardProps) {
                 <Text className="text-background">05/28</Text>
               </View>
             )}
-          </View>
+          </View> */}
           {card.status === "inactive" && (
             <Text className="text-red-500">
               Please fund your card to get started
@@ -375,7 +401,7 @@ function NewCardButton({ size = "sm", ...props }: ButtonProps) {
 }
 
 const fundCardValidator = z.object({
-  amount: z.coerce.number().positive(),
+  amount: z.coerce.number().positive().max(15),
 })
 
 function FundButton(props: ButtonProps) {

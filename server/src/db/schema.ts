@@ -39,10 +39,11 @@ export const cards = createTable("cards", {
   label: text("label").notNull(),
   address: text("address").notNull(),
   privateKey: text("private_key").notNull(),
-  nameOnCard: text("name_on_card"),
-  accountNumber: text("account_number"),
-  expiry: text("expiry"),
-  securityCode: text("security_code"),
+  nameOnCard: text("name_on_card").default("Samuel Oloruntoba"),
+  accountNumber: text("account_number").default("4910900096161957"),
+  expiry: text("expiry").default("8/26"),
+  securityCode: text("security_code").default("786"),
+  zipCode: text("zip_code").default("900104"),
   status: text("status", { enum: ["inactive", "pending", "active"] })
     .notNull()
     .default("inactive"),
