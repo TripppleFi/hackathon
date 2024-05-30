@@ -41,9 +41,9 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1 flex-col items-center justify-center gap-6">
-      <Button size="lg" onPress={() => handlePress("google")}>
+      {/* <Button size="lg" onPress={() => handlePress("google")}>
         <Text>Google</Text>
-      </Button>
+      </Button> */}
       <Button size="lg" onPress={() => handlePress("twitch")}>
         <Text>Twitch</Text>
       </Button>
