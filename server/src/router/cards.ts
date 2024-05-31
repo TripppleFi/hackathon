@@ -21,8 +21,41 @@ const withdrawValidator = t.Object({
 })
 
 export const cardRoutes = new Elysia({ name: "@router/cards", prefix: "cards" })
-  .use(authPlugin)
   .use(setupPlugin)
+  .post(
+    "/simulate",
+    async ({ body, db, httpErrors }) => {
+      const suiClient = getSuiClient()
+      const card = await db.query.cards.findFirst()
+      if (!card) throw httpErrors.NotFound()
+      const kp = Ed25519Keypair.fromSecretKey(
+        decodeSuiPrivateKey(card.privateKey).secretKey,
+      )
+      const txb = new TransactionBlock()
+      const amount = new BigNumber(body.amount)
+      const [coin] = txb.splitCoins(txb.gas, [
+        txb.pure(amount.multipliedBy(1e9).toNumber()),
+      ])
+      txb.transferObjects(
+        [coin],
+        txb.pure(
+          "0x9913311d71b3af808e94de7ed37d5e603690fb6dd9dcab55b4df188750146b81",
+        ),
+      )
+      txb.setSender(card.address)
+      const { bytes, signature } = await txb.sign({
+        client: suiClient,
+        signer: kp,
+      })
+      return suiClient.executeTransactionBlock({
+        signature,
+        transactionBlock: bytes,
+        requestType: "WaitForLocalExecution",
+      })
+    },
+    { body: t.Object({ amount: t.Number() }) },
+  )
+  .use(authPlugin)
   .guard({ guard: "auth" }, app =>
     app
       .get("/", async ({ db, session }) => {
